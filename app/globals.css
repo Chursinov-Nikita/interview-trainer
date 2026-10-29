@@ -1,0 +1,732 @@
+@import "tailwindcss";
+
+/* ——— Палитра ———
+   Тёмная тема в духе Telegram: глубокий графитовый фон с лёгкой холодной ноткой, плашки на тон светлее, белый текст.
+   Ярких цветов нет: главное действие — белое, оценки различаются только приглушёнными точками. */
+:root,
+:root[data-theme="dark"] {
+  --bg: #141417;
+  --surface: #1e1e22;
+  --surface-solid: #1e1e22;
+  --surface-2: #2a2a2f;
+  --line: #2a2a2f;
+  --line-strong: #3a3a40;
+  --text: #ffffff;
+  --mute: #8e8e93;
+  --dim: #636366;
+
+  --primary: #ffffff;
+  --primary-edge: #ffffff;
+  --primary-soft: rgb(255 255 255 / 0.08);
+  --primary-ink: #ffffff;
+  --on-primary: #000000;
+  --sky: #d1d1d6;
+  --sky-edge: #d1d1d6;
+  --sky-soft: rgb(255 255 255 / 0.08);
+  --sky-ink: #d1d1d6;
+
+  --again: #c9605a;
+  --again-soft: rgb(201 96 90 / 0.14);
+  --hard: #c4a052;
+  --hard-soft: rgb(196 160 82 / 0.14);
+  --easy: #67a77c;
+  --easy-soft: rgb(103 167 124 / 0.14);
+  --flame: #ffffff;
+
+  --code-bg: #111114;
+  --code-text: #e5e5ea;
+  --tok-keyword: #ffffff;
+  --tok-string: #a8c3a8;
+  --tok-number: #cdb88e;
+  --tok-comment: #636366;
+  --tok-title: #d1d1d6;
+  --tok-type: #aeb8cc;
+  --tok-meta: #b0a6bf;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f2f2f7;
+  --surface: #ffffff;
+  --surface-solid: #ffffff;
+  --surface-2: #e9e9ee;
+  --line: #e5e5ea;
+  --line-strong: #d1d1d6;
+  --text: #000000;
+  --mute: #8e8e93;
+  --dim: #aeaeb2;
+
+  --primary: #000000;
+  --primary-edge: #000000;
+  --primary-soft: rgb(0 0 0 / 0.06);
+  --primary-ink: #000000;
+  --on-primary: #ffffff;
+  --sky: #3a3a3c;
+  --sky-edge: #3a3a3c;
+  --sky-soft: rgb(0 0 0 / 0.06);
+  --sky-ink: #3a3a3c;
+
+  --again: #b8524c;
+  --again-soft: rgb(184 82 76 / 0.12);
+  --hard: #a88732;
+  --hard-soft: rgb(168 135 50 / 0.14);
+  --easy: #4f8f63;
+  --easy-soft: rgb(79 143 99 / 0.13);
+  --flame: #000000;
+
+  --code-bg: #f5f5f7;
+  --code-text: #1c1c1e;
+  --tok-keyword: #000000;
+  --tok-string: #4f7a4f;
+  --tok-number: #8a6a2a;
+  --tok-comment: #aeaeb2;
+  --tok-title: #3a3a3c;
+  --tok-type: #4a5873;
+  --tok-meta: #6a5a80;
+  color-scheme: light;
+}
+
+@theme inline {
+  /* системный шрифт, как в самом Telegram: SF Pro, Segoe UI, Roboto */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-solid: var(--surface-solid);
+  --color-line-strong: var(--line-strong);
+  --color-on-primary: var(--on-primary);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-sky-ink: var(--sky-ink);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-mute: var(--mute);
+  --color-dim: var(--dim);
+  --color-primary: var(--primary);
+  --color-primary-edge: var(--primary-edge);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-ink: var(--primary-ink);
+  --color-again: var(--again);
+  --color-again-soft: var(--again-soft);
+  --color-hard: var(--hard);
+  --color-hard-soft: var(--hard-soft);
+  --color-easy: var(--easy);
+  --color-easy-soft: var(--easy-soft);
+  --color-flame: var(--flame);
+}
+
+@theme {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-rise: rise 0.5s var(--ease-out-expo) both;
+  --animate-fade: fade 0.3s ease-out both;
+  --animate-pop: pop 0.45s var(--ease-spring) both;
+  --animate-shake: shake 0.4s ease-in-out;
+  --animate-flicker: flicker 1.6s ease-in-out infinite;
+  --animate-float: float 3.2s ease-in-out infinite;
+
+  @keyframes rise {
+    from {
+      transform: translateY(18px);
+      opacity: 0;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes pop {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.08);
+      opacity: 1;
+    }
+  }
+  @keyframes shake {
+    20%,
+    60% {
+      transform: translateX(-6px);
+    }
+    40%,
+    80% {
+      transform: translateX(6px);
+    }
+  }
+  @keyframes flicker {
+    0%,
+    100% {
+      transform: scale(1) rotate(-3deg);
+    }
+    50% {
+      transform: scale(1.08) rotate(3deg);
+    }
+  }
+  @keyframes float {
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  @keyframes grow {
+    from {
+      transform: scaleY(0);
+    }
+  }
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+}
+
+html {
+  font-size: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+button,
+a,
+[role="button"],
+label {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ——— Плитка: объёмная карточка с «полом» снизу ——— */
+@utility tile {
+  background: var(--surface);
+  border-radius: 0.875rem;
+}
+
+@utility eyebrow {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility kbd {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 0.4rem;
+  border: 1.5px solid currentColor;
+  opacity: 0.55;
+}
+
+/* ——— Кнопки: плоские, как в Telegram ——— */
+@layer components {
+.btn {
+  --face: var(--surface-2);
+  --ink: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.875rem;
+  padding: 0 1.125rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--face);
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease,
+    background-color 0.15s ease;
+  user-select: none;
+}
+.btn:hover {
+  opacity: 0.88;
+}
+.btn:active,
+.btn[data-pressed="true"] {
+  transform: scale(0.97);
+  opacity: 0.72;
+}
+.btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.btn-primary {
+  --face: var(--primary);
+  --ink: var(--on-primary);
+  font-weight: 600;
+}
+.btn-outline,
+.btn-soft {
+  --face: var(--surface-2);
+}
+.btn-again {
+  --ink: var(--again);
+}
+.btn-ghost {
+  --face: transparent;
+  --ink: var(--mute);
+}
+.input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background: var(--surface);
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--line-strong);
+}
+.input::placeholder {
+  color: var(--dim);
+}
+}
+
+/* ——— Прогресс-бар сессии: пружинит и переливается ——— */
+.bar {
+  position: relative;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 0.7s var(--ease-spring);
+}
+/* ——— Карточка в сессии ——— */
+.stage {
+  perspective: 1400px;
+}
+.flashcard {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.flashcard[data-anim="enter"] {
+  animation: card-enter 0.55s var(--ease-spring) both;
+}
+.flashcard[data-anim="flip-out"] {
+  animation: flip-out 0.17s cubic-bezier(0.5, 0, 0.9, 0.5) forwards;
+}
+.flashcard[data-anim="flip-in"] {
+  animation: flip-in 0.42s var(--ease-spring) both;
+}
+.flashcard[data-anim="again"] {
+  animation: fling-again 0.42s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+.flashcard[data-anim="hard"] {
+  animation: fling-hard 0.4s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+.flashcard[data-anim="easy"] {
+  animation: fling-easy 0.42s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+@keyframes card-enter {
+  from {
+    transform: translateY(26px) scale(0.92);
+    opacity: 0;
+  }
+}
+@keyframes flip-out {
+  to {
+    transform: rotateY(90deg) scale(0.96);
+  }
+}
+@keyframes flip-in {
+  from {
+    transform: rotateY(-90deg) scale(0.96);
+  }
+}
+@keyframes fling-again {
+  to {
+    transform: translate(-130%, 40px) rotate(-16deg);
+    opacity: 0;
+  }
+}
+@keyframes fling-hard {
+  to {
+    transform: translateY(70%) scale(0.85);
+    opacity: 0;
+  }
+}
+@keyframes fling-easy {
+  to {
+    transform: translate(130%, -30px) rotate(14deg);
+    opacity: 0;
+  }
+}
+/* блик по поверхности при перевороте */
+.flashcard[data-anim="flip-in"] .gloss {
+  animation: gloss 0.6s ease-out both;
+}
+@keyframes gloss {
+  from {
+    background-position: -50% 0;
+    opacity: 1;
+  }
+  to {
+    background-position: 150% 0;
+    opacity: 0;
+  }
+}
+.gloss {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.5) 48%, transparent 66%);
+  background-size: 200% 100%;
+  mix-blend-mode: soft-light;
+}
+
+/* всплывающая подпись над кнопкой оценки */
+@keyframes float-up {
+  0% {
+    transform: translate(-50%, 0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -14px) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -64px) scale(1);
+    opacity: 0;
+  }
+}
+.float-up {
+  animation: float-up 0.9s var(--ease-out-expo) forwards;
+}
+
+/* плашка комбо: выпрыгивает, висит и тает */
+@keyframes combo {
+  0% {
+    transform: translate(-50%, 10px) scale(0.4);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, 0) scale(1.12);
+    opacity: 1;
+  }
+  25%,
+  80% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -12px) scale(0.9);
+    opacity: 0;
+  }
+}
+.combo-pill {
+  animation: combo 1.8s var(--ease-out-expo) forwards;
+}
+
+/* ——— Конфетти ——— */
+.confetti > i {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: var(--w);
+  height: var(--h);
+  border-radius: var(--radius);
+  background: var(--c);
+  opacity: 0;
+  animation: burst var(--d) cubic-bezier(0.15, 0.8, 0.3, 1) var(--delay) forwards;
+}
+@keyframes burst {
+  0% {
+    transform: translate(-50%, -50%) rotate(0) scale(0.4);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--r)) scale(1);
+    opacity: 0;
+  }
+}
+
+/* ——— Огонёк стрика: вспыхивает, потом мерцает ——— */
+@keyframes ignite {
+  0% {
+    transform: scale(0) rotate(-30deg);
+    filter: grayscale(1);
+  }
+  55% {
+    transform: scale(1.35) rotate(8deg);
+    filter: grayscale(0);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+.ignite {
+  animation: ignite 0.8s var(--ease-spring) both;
+}
+
+/* ——— Скелет загрузки ——— */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease-in-out infinite;
+  border-radius: 1.5rem;
+}
+@keyframes skeleton {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ——— Шторка ——— */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-zoom {
+  from {
+    transform: translateY(16px) scale(0.96);
+    opacity: 0;
+  }
+}
+.sheet-panel {
+  animation: sheet-up 0.42s var(--ease-out-expo) both;
+}
+@media (min-width: 640px) {
+  .sheet-panel {
+    animation: sheet-zoom 0.32s var(--ease-out-expo) both;
+  }
+}
+
+/* ——— Переходы между страницами (React ViewTransition) ——— */
+::view-transition-old(.page-exit) {
+  animation: 140ms ease-in both vt-out;
+}
+::view-transition-new(.page-enter) {
+  animation: 380ms var(--ease-out-expo) both vt-in;
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@layer components {
+/* ——— Markdown в карточках ——— */
+.md {
+  overflow-wrap: anywhere;
+}
+.md > * + * {
+  margin-top: 0.7em;
+}
+.md strong {
+  font-weight: 650;
+}
+.md ul,
+.md ol {
+  padding-left: 1.25em;
+}
+.md ul {
+  list-style: none;
+}
+.md ul > li {
+  position: relative;
+}
+.md ul > li::before {
+  content: "";
+  position: absolute;
+  left: -0.95em;
+  top: 0.62em;
+  width: 0.38em;
+  height: 0.38em;
+  border-radius: 50%;
+  background: var(--dim);
+}
+.md ol {
+  list-style: decimal;
+}
+.md ol > li::marker {
+  color: var(--mute);
+}
+.md li + li {
+  margin-top: 0.3em;
+}
+.md a {
+  color: var(--primary-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.md :not(pre) > code {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+  font-size: 0.86em;
+  padding: 0.1em 0.38em;
+  border-radius: 0.4em;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.md pre {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  tab-size: 2;
+  /* без лигатур: => и === должны выглядеть так, как их печатают */
+  font-variant-ligatures: none;
+}
+.md pre code {
+  font-family: inherit;
+}
+/* широкая таблица прокручивается сама, а слова в ячейках не рвутся посередине */
+.md table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.875em;
+}
+.md th,
+.md td {
+  overflow-wrap: normal;
+}
+.md th,
+.md td {
+  border: 1.5px solid var(--line);
+  padding: 0.4em 0.6em;
+  text-align: left;
+}
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag {
+  color: var(--tok-keyword);
+  font-weight: 600;
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-template-tag {
+  color: var(--tok-string);
+}
+.hljs-number,
+.hljs-literal {
+  color: var(--tok-number);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: var(--tok-title);
+}
+.hljs-type,
+.hljs-built_in,
+.hljs-title.class_,
+.hljs-class .hljs-title {
+  color: var(--tok-type);
+}
+.hljs-meta,
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--tok-meta);
+}
+.hljs-tag,
+.hljs-name {
+  color: var(--tok-title);
+}
+
+/* жёсткая тряска экрана при «не помню» */
+@keyframes shake-hard {
+  10% {
+    transform: translate(-10px, 2px) rotate(-1deg);
+  }
+  25% {
+    transform: translate(9px, -3px) rotate(1deg);
+  }
+  40% {
+    transform: translate(-7px, 1px);
+  }
+  55% {
+    transform: translate(5px, -1px);
+  }
+  75% {
+    transform: translate(-2px, 0);
+  }
+}
+.shake-hard {
+  animation: shake-hard 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

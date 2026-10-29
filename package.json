@@ -1,0 +1,39 @@
+{
+  "name": "synapse-trainer",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/seed.mjs && next dev",
+    "build": "node scripts/seed.mjs && next build && node scripts/export-segments.mjs",
+    "start": "npx serve out",
+    "lint": "eslint",
+    "icons": "node scripts/icons.mjs",
+    "seed": "node scripts/seed.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "highlight.js": "^11.11.2",
+    "idb-keyval": "^6.3.0",
+    "lowlight": "^3.3.0",
+    "lucide-react": "^1.64.0",
+    "next": "^16.4.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^20.19.43",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.3",
+    "sharp": "^0.35.5",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3"
+  }
+}
