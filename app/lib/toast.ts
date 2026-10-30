@@ -7,7 +7,6 @@ let next = 1;
 const emit = () => listeners.forEach((l) => l());
 
 export const getToasts = () => toasts;
-// снимок должен быть одной и той же ссылкой, иначе React решит, что данные всё время меняются
 const NO_TOASTS: Toast[] = [];
 export const getServerToasts = () => NO_TOASTS;
 

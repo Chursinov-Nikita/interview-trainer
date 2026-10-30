@@ -1,15 +1,3 @@
-// Собирает стартовые колоды из content/*.md в app/data/seed.ts: npm run seed
-//
-// Формат файла:
-// ---
-// id: ts
-// title: TypeScript
-// ...
-// ---
-// @@@ ts-01 | generics, infer      ← id карточки и теги
-// Вопрос в Markdown
-// ???
-// Ответ в Markdown
 import { readFile, readdir, writeFile } from "node:fs/promises";
 
 const COLORS = ["amber", "blue", "cyan", "fuchsia", "green", "indigo", "rose", "slate"];
@@ -50,8 +38,7 @@ const decks = await Promise.all(
   }),
 );
 
-const out = `// Сгенерировано scripts/seed.mjs из content/*.md — не редактируй руками
-import type { SeedDeck } from "../lib/types";
+const out = `import type { SeedDeck } from "../lib/types";
 
 export const SEED: SeedDeck[] = ${JSON.stringify(decks, null, 2)};
 `;

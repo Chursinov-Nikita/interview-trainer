@@ -5,7 +5,6 @@ import { Check, Flame } from "lucide-react";
 import { addDays, WEEKDAYS, weekday } from "../lib/dates";
 import type { DayLog } from "../lib/types";
 
-/** Кольцо прогресса: дуга дорисовывается с пружиной при появлении */
 export function Ring({
   value,
   size = 124,
@@ -48,7 +47,6 @@ export function Ring({
 
 const CONFETTI_COLORS = ["#ffffff", "#d1d1d6", "#8e8e93", "#636366"];
 
-/** Залп конфетти из центра: каждой частице — случайный угол, дальность и вращение */
 export function Confetti({ count = 46 }: { count?: number }) {
   const [pieces] = useState(() =>
     Array.from({ length: count }, (_, i) => {
@@ -76,7 +74,6 @@ export function Confetti({ count = 46 }: { count?: number }) {
   );
 }
 
-/** Огонёк стрика: серый, пока сегодня не занимался */
 export function StreakFlame({ lit, size = 22, className = "" }: { lit: boolean; size?: number; className?: string }) {
   return (
     <Flame
@@ -89,7 +86,6 @@ export function StreakFlame({ lit, size = 22, className = "" }: { lit: boolean; 
   );
 }
 
-/** Неделя с понедельника: огоньки в дни, когда были повторения */
 export function WeekStrip({ log, today, ignite = false }: { log: Record<string, DayLog>; today: string; ignite?: boolean }) {
   const monday = addDays(today, -weekday(today));
   return (
@@ -100,20 +96,18 @@ export function WeekStrip({ log, today, ignite = false }: { log: Record<string, 
         const isToday = day === today;
         return (
           <div key={day} className="flex flex-col items-center gap-1.5">
-            <span className={`text-[11px] font-bold ${isToday ? "text-text" : "text-dim"}`}>{label}</span>
+            <span className={`text-[13px] ${isToday ? "text-text" : "text-dim"}`}>{label}</span>
             <span
-              className={`grid size-9 place-items-center rounded-full border-2 transition ${
+              className={`grid size-8 place-items-center rounded-full ${
                 active
-                  ? `border-text bg-text text-bg ${isToday && ignite ? "ignite" : "animate-pop"}`
+                  ? `bg-accent text-[#0e1a24] ${isToday && ignite ? "ignite" : ""}`
                   : isToday
-                    ? "border-text border-dashed text-text"
-                    : day > today
-                      ? "border-line/60 text-dim/50"
-                      : "border-line text-dim"
+                    ? "bg-surface-2 text-text ring-1 ring-line-strong"
+                    : "bg-surface-2 text-dim"
               }`}
-              style={{ animationDelay: active && !(isToday && ignite) ? `${i * 50}ms` : isToday && ignite ? "0.5s" : undefined }}
+              style={{ animationDelay: isToday && ignite ? "0.5s" : undefined }}
             >
-              {active ? <Check size={16} strokeWidth={3.5} /> : <span className="size-1.5 rounded-full bg-current" />}
+              {active ? <Check size={14} strokeWidth={3} /> : <span className={`size-1 rounded-full bg-current ${day > today ? "opacity-40" : ""}`} />}
             </span>
           </div>
         );
@@ -128,11 +122,10 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 export function PageSkeleton() {
   return (
-    <div className="space-y-4 pt-2">
-      <Skeleton className="h-10 w-40" />
-      <Skeleton className="h-56" />
-      <Skeleton className="h-20" />
-      <Skeleton className="h-20" />
+    <div className="space-y-[14px]">
+      <Skeleton className="mb-4 h-8 w-48" />
+      <Skeleton className="h-52" />
+      <Skeleton className="h-60" />
     </div>
   );
 }

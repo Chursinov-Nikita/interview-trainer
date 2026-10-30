@@ -6,8 +6,6 @@ import { today } from "./dates";
 import { schedule } from "./srs";
 import type { Card, DayLog, Deck, DeckColor, DeckIcon, Grade, Settings } from "./types";
 
-// IndexedDB вместо localStorage: лимит в сотни мегабайт и запись не блокирует поток.
-// На сервере (при сборке статики) базы нет — отдаём пустоту.
 const idb: StateStorage = {
   getItem: async (name) => (typeof indexedDB === "undefined" ? null : ((await get<string>(name)) ?? null)),
   setItem: (name, value) => (typeof indexedDB === "undefined" ? undefined : put(name, value)),
@@ -16,7 +14,6 @@ const idb: StateStorage = {
 
 export const EMPTY_LOG: DayLog = { reviews: 0, again: 0, hard: 0, easy: 0, fresh: 0, ms: 0 };
 
-// "kesh" — прежнее название приложения: ключ оставлен, чтобы открывались старые бэкапы и сохранился прогресс
 export type ExportData = {
   app: "kesh";
   version: 1;
@@ -31,7 +28,6 @@ type Data = {
   cards: Record<string, Card>;
   log: Record<string, DayLog>;
   settings: Settings;
-  /** id стартовых колод и карточек, которые удалил пользователь */
   removed: string[];
 };
 
@@ -56,8 +52,6 @@ export const uid = () => Date.now().toString(36) + Math.random().toString(36).sl
 const without = <T,>(record: Record<string, T>, ids: Set<string>) =>
   Object.fromEntries(Object.entries(record).filter(([id]) => !ids.has(id)));
 
-// Подмешиваем стартовый набор: новые карточки добавляются, нетронутые обновляются,
-// отредактированные и удалённые пользователем остаются как есть.
 const withSeed = (data: Data): Pick<Data, "decks" | "cards"> => {
   const removed = new Set(data.removed);
   const decks = { ...data.decks };
@@ -167,14 +161,12 @@ export const useStore = create<State>()(
         const cards = { ...base.cards };
         data.cards.forEach((card) => {
           if (!decks[card.deckId]) return;
-          // при слиянии не затираем прогресс, если в файле его нет
           cards[card.id] = { ...card, srs: card.srs ?? cards[card.id]?.srs };
         });
         const log = { ...base.log };
         Object.entries(data.log ?? {}).forEach(([day, entry]) => {
           log[day] = mode === "replace" || !log[day] || entry.reviews > log[day].reviews ? entry : log[day];
         });
-        // импортированное больше не считается удалённым
         const imported = new Set([...data.decks.map((d) => d.id), ...data.cards.map((c) => c.id)]);
         set({ decks, cards, log, removed: base.removed.filter((id) => !imported.has(id)) });
         return { decks: data.decks.length, cards: data.cards.filter((c) => decks[c.deckId]).length };

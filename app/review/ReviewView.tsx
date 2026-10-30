@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { Clock, Dumbbell, Flame, Pencil, Play, Target, Trophy, X } from "lucide-react";
+import { Dumbbell, Flame, Pencil, Play, X } from "lucide-react";
 import CardEditor from "../elements/CardEditor";
 import DeckIcon from "../elements/DeckIcon";
 import Markdown from "../elements/Markdown";
@@ -22,7 +22,6 @@ export default function ReviewView() {
   const params = useSearchParams();
   const deckId = params.get("deck");
   const cram = params.get("mode") === "cram";
-  // каждая новая «порция» — новый экземпляр сессии с чистым состоянием
   const [round, setRound] = useState(0);
 
   if (!ready || !today) return <ReviewSkeleton />;
@@ -59,8 +58,6 @@ const GRADE_UI: Record<Grade, { label: string; key: string }> = {
 const isGrade = (anim: Anim): anim is Grade => GRADES.includes(anim as Grade);
 const SWIPE = 110;
 
-
-
 type SessionProps = { deckId: string | null; wantCram: boolean; onMore: () => void };
 
 function Session({ deckId, wantCram, onMore }: SessionProps) {
@@ -85,17 +82,18 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
   const [drag, setDrag] = useState(0);
   const dragRef = useRef<{ x: number; y: number; active: boolean } | null>(null);
   const cardStart = useRef(0);
-  // оценку пишем в базу, когда карточка улетела: иначе кнопки успеют показать следующие интервалы
   const pending = useRef<{ ms: number; scheduleIt: boolean } | null>(null);
   const [shake, setShake] = useState(0);
 
-  const current = queue[0];
-  const card = useStore((s) => (current ? s.cards[current.id] : undefined));
+  const cards = useStore((s) => s.cards);
+  const live = queue.filter((item) => cards[item.id]);
+  const current = live[0];
+  const card = current ? cards[current.id] : undefined;
   const deck = useStore((s) => (card ? s.decks[card.deckId] : undefined));
   const review = useStore((s) => s.review);
   const total = initial.length;
-  const finished = total > 0 && queue.length === 0;
-  const exitHref = deckId ? `/deck/?id=${deckId}` : "/";
+  const finished = total > 0 && live.length === 0;
+  const exitHref = deckId ? `/deck/?id=${encodeURIComponent(deckId)}` : "/";
 
   useEffect(() => {
     cardStart.current = performance.now();
@@ -138,9 +136,9 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
   const advance = (g: Grade) => {
     if (current && pending.current) review(current.id, g, pending.current.ms, pending.current.scheduleIt);
     pending.current = null;
-    setQueue(([head, ...rest]) => {
-      // забытая карточка вернётся через пару других, пока не вспомнишь
-      if (g === "again") rest.splice(Math.min(rest.length, 3), 0, { id: head.id, repeat: true });
+    setQueue((q) => {
+      const rest = q.filter((item) => item !== current);
+      if (g === "again" && current) rest.splice(Math.min(rest.length, 3), 0, { id: current.id, repeat: true });
       return rest;
     });
     if (g !== "again") setDone((d) => d + 1);
@@ -183,7 +181,6 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
     return () => window.removeEventListener("keydown", listener);
   }, []);
 
-  // Свайп по открытой карточке: влево — «не помню», вправо — «легко»
   const onPointerDown = (e: React.PointerEvent) => {
     if (face !== "back" || anim) return;
     dragRef.current = { x: e.clientX, y: e.clientY, active: false };
@@ -226,6 +223,10 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
         shake ? "shake-hard" : ""
       }`}
     >
+      <h1 className="sr-only">
+        {cram ? "Тренировка" : "Повторение"}
+        {deck ? `: ${deck.title}` : ""}
+      </h1>
       <header className="flex items-center gap-3 sm:gap-4">
         <Link href={exitHref} className="grid size-10 shrink-0 place-items-center rounded-full text-dim hover:bg-surface-2" aria-label="Выйти">
           <X size={26} strokeWidth={2.5} />
@@ -233,10 +234,8 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
         <div className="bar flex-1">
           <i style={{ width: `${Math.max(4, (done / total) * 100)}%` }} />
         </div>
-        <span className="font-display w-14 text-right text-sm text-mute tabular-nums">
-          <span key={done} className="inline-block animate-pop">
-            {done}
-          </span>
+        <span className="num w-14 text-right text-sm text-mute">
+          {done}
           /{total}
         </span>
       </header>
@@ -245,7 +244,7 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
         {comboBurst > 0 && (
           <div
             key={comboBurst}
-            className="combo-pill absolute top-2 left-1/2 z-20 flex items-center gap-1.5 rounded-full bg-surface-2 px-4 py-1.5 font-display text-sm text-text"
+            className="combo-pill absolute top-2 left-1/2 z-20 flex items-center gap-1.5 rounded-full bg-surface-2 px-4 py-1.5 text-sm font-medium text-text"
           >
             <Flame size={16} fill="currentColor" />
             {comboBurst} подряд!
@@ -253,18 +252,18 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
         )}
         {cram && (
           <div className="mb-3 flex justify-center">
-            <span className="flex items-center gap-1.5 rounded-full bg-sky-soft px-3 py-1 text-xs font-bold text-sky-ink">
+            <span className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] text-mute">
               <Dumbbell size={14} /> Тренировка · прогресс не меняется
             </span>
           </div>
         )}
 
         <div className="relative flex max-h-full min-h-[min(26rem,100%)] flex-col">
-          {queue.length > 2 && (
-            <div className="absolute inset-x-6 top-3 -bottom-4 rounded-2xl bg-surface opacity-40" />
+          {live.length > 2 && (
+            <div className="absolute inset-x-6 top-3 -bottom-4 rounded-[20px] bg-surface opacity-40" />
           )}
-          {queue.length > 1 && (
-            <div className="absolute inset-x-3 top-1.5 -bottom-2 rounded-2xl bg-surface opacity-70" />
+          {live.length > 1 && (
+            <div className="absolute inset-x-3 top-1.5 -bottom-2 rounded-[20px] bg-surface opacity-70" />
           )}
 
           <article
@@ -276,7 +275,7 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            className={`flashcard relative flex min-h-0 flex-1 touch-pan-y flex-col overflow-hidden rounded-2xl bg-surface ${
+            className={`flashcard relative flex min-h-0 flex-1 touch-pan-y flex-col overflow-hidden rounded-[20px] bg-surface ${
               face === "front" ? "cursor-pointer" : ""
             }`}
             style={{
@@ -288,10 +287,10 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
               {deck && <DeckIcon icon={deck.icon} color={deck.color} size="sm" />}
               <span className="truncate text-sm font-semibold text-mute">{deck?.title}</span>
               {!card.srs && !current.repeat && (
-                <span className="rounded-full bg-easy-soft px-2 py-0.5 text-[11px] font-bold text-easy">новая</span>
+                <span className="rounded-full bg-easy-soft px-2 py-0.5 text-xs font-medium text-easy">новая</span>
               )}
               {current.repeat && (
-                <span className="rounded-full bg-again-soft px-2 py-0.5 text-[11px] font-bold text-again">ещё раз</span>
+                <span className="rounded-full bg-again-soft px-2 py-0.5 text-xs font-medium text-again">ещё раз</span>
               )}
               <button
                 onClick={(e) => {
@@ -313,7 +312,7 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
                   {card.tags.length > 0 && (
                     <div className="mt-5 flex flex-wrap gap-1.5">
                       {card.tags.map((t) => (
-                        <span key={t} className="rounded-lg bg-surface-2 px-2 py-0.5 font-mono text-xs text-mute">
+                        <span key={t} className="rounded-lg bg-surface-2 px-2 py-0.5 text-xs text-mute">
                           #{t}
                         </span>
                       ))}
@@ -323,18 +322,17 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
               ) : (
                 <>
                   <Markdown className="text-sm text-mute">{card.front}</Markdown>
-                  <div className="my-4 border-t-2 border-dashed border-line" />
+                  <div className="my-4 border-t border-line" />
                   <Markdown className="text-[1.02rem]">{card.back}</Markdown>
                 </>
               )}
             </div>
             {face === "front" && (
-              <p className="shrink-0 animate-pulse pb-4 text-center text-xs font-semibold text-dim">Нажми, чтобы перевернуть</p>
+              <p className="shrink-0 pb-4 text-center text-[13px] text-dim">Нажми, чтобы перевернуть</p>
             )}
-            <div className="gloss" />
             {drag !== 0 && (
               <div
-                className={`pointer-events-none absolute top-6 rounded-xl border-[3px] px-3 py-1 font-display text-lg ${
+                className={`pointer-events-none absolute top-6 rounded-xl border-2 px-3 py-1 text-base font-semibold ${
                   drag > 0 ? "left-6 -rotate-12 border-easy text-easy" : "right-6 rotate-12 border-again text-again"
                 }`}
                 style={{ opacity: tilt }}
@@ -401,17 +399,14 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
 function Empty({ cram, deckId, exitHref }: { cram: boolean; deckId: string | null; exitHref: string }) {
   return (
     <div className="fixed inset-0 mx-auto flex max-w-md flex-col items-center justify-center px-6 text-center">
-      <div className="grid size-24 animate-float place-items-center rounded-4xl bg-easy-soft text-easy">
-        <Trophy size={44} />
-      </div>
-      <h1 className="font-display mt-6 text-2xl">{cram ? "Здесь пока пусто" : "Повторять нечего"}</h1>
+      <h1 className="text-xl font-semibold">{cram ? "Здесь пока пусто" : "Повторять нечего"}</h1>
       <p className="mt-2 text-mute">
         {cram ? "В колоде нет карточек — добавь первую." : "Все карточки повторены вовремя. Можно потренироваться без влияния на расписание."}
       </p>
       <div className="mt-8 flex w-full flex-col gap-3">
         {!cram && (
-          <Link href={`/review/?mode=cram${deckId ? `&deck=${deckId}` : ""}`} className="btn btn-primary w-full">
-            <Dumbbell size={20} /> Свободная тренировка
+          <Link href={`/review/?mode=cram${deckId ? `&deck=${encodeURIComponent(deckId)}` : ""}`} className="btn btn-primary w-full">
+            <Dumbbell size={18} /> Свободная тренировка
           </Link>
         )}
         <Link href={exitHref} className="btn btn-outline w-full">
@@ -449,7 +444,7 @@ function Finish({
   const shownTotal = useCountUp(total, 800, 300);
   const shownAcc = useCountUp(accuracy, 1000, 450);
   const shownStreak = useCountUp(streak.current, 700, 900);
-  const exitHref = deckId ? `/deck/?id=${deckId}` : "/";
+  const exitHref = deckId ? `/deck/?id=${encodeURIComponent(deckId)}` : "/";
 
   const title = accuracy >= 90 ? "Блестяще!" : accuracy >= 70 ? "Отличная работа!" : accuracy >= 40 ? "Хороший прогресс" : "Главное — регулярность";
 
@@ -457,42 +452,35 @@ function Finish({
     <div className="fixed inset-0 overflow-y-auto">
       <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center px-5 py-10 text-center">
         <Confetti />
-        <p className="eyebrow animate-rise">
-          {cram ? "Тренировка завершена" : "Сессия завершена"}
-        </p>
-        <h1 className="font-display mt-2 animate-pop text-4xl [animation-delay:100ms]">{title}</h1>
+        <p className="text-mute">{cram ? "Тренировка завершена" : "Сессия завершена"}</p>
+        <h1 className="mt-1 text-2xl font-semibold">{title}</h1>
 
-        <div className="mt-8 grid w-full grid-cols-3 gap-3">
+        <dl className="tile mt-8 grid w-full grid-cols-3 divide-x divide-line py-4">
           {[
-            { icon: Target, label: "Карточек", value: shownTotal, color: "text-sky-ink", bg: "bg-sky-soft" },
-            { icon: Trophy, label: "Помню", value: `${shownAcc}%`, color: "text-easy", bg: "bg-easy-soft" },
-            { icon: Clock, label: "Время", value: duration(spent), color: "text-hard", bg: "bg-hard-soft" },
-          ].map(({ icon: Icon, label, value, color, bg }, i) => (
-            <div key={label} className="tile animate-pop p-3" style={{ animationDelay: `${250 + i * 120}ms` }}>
-              <div className={`mx-auto grid size-9 place-items-center rounded-xl ${bg} ${color}`}>
-                <Icon size={19} strokeWidth={2.4} />
-              </div>
-              <div className={`font-display mt-2 text-xl tabular-nums ${color}`}>{value}</div>
-              <div className="text-xs font-semibold text-mute">{label}</div>
+            { label: "карточек", value: shownTotal },
+            { label: "помню", value: `${shownAcc}%` },
+            { label: "время", value: duration(spent) },
+          ].map(({ label, value }) => (
+            <div key={label} className="px-2">
+              <dd className="num text-2xl">{value}</dd>
+              <dt className="mt-1 text-[13px] text-dim">{label}</dt>
             </div>
           ))}
-        </div>
+        </dl>
 
-        <div className="tile mt-4 w-full animate-rise p-5 [animation-delay:650ms]">
-          <div className="mb-4 flex items-center justify-center gap-2">
-            <StreakFlame lit size={30} className="ignite" />
-            <span className="font-display text-2xl text-flame tabular-nums">{shownStreak}</span>
-            <span className="font-semibold text-mute">
-              {plu(streak.current, ["день", "дня", "дней"]).replace(/^\d+ /, "")} подряд
-            </span>
+        <div className="tile mt-[14px] w-full p-[22px]">
+          <div className="mb-5 flex items-center justify-center gap-2">
+            <StreakFlame lit size={22} className="ignite" />
+            <span className="num text-2xl">{shownStreak}</span>
+            <span className="text-mute">{plu(streak.current, ["день", "дня", "дней"]).replace(/^\d+ /, "")} подряд</span>
           </div>
           <WeekStrip log={log} today={today} ignite />
         </div>
 
-        <div className="mt-8 flex w-full animate-rise flex-col gap-3 [animation-delay:800ms]">
+        <div className="mt-8 flex w-full flex-col gap-2.5">
           {(left > 0 || cram) && (
-            <button onClick={onMore} className="btn btn-primary w-full text-lg">
-              {cram ? <Dumbbell size={20} /> : <Play size={20} fill="currentColor" />}
+            <button onClick={onMore} className="btn btn-primary w-full">
+              {cram ? <Dumbbell size={18} /> : <Play size={16} fill="currentColor" />}
               {cram ? "Ещё тренировку" : `Продолжить · ${left}`}
             </button>
           )}

@@ -1,4 +1,3 @@
-// Сгенерировано scripts/seed.mjs из content/*.md — не редактируй руками
 import type { SeedDeck } from "../lib/types";
 
 export const SEED: SeedDeck[] = [

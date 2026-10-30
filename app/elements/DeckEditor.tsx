@@ -39,19 +39,19 @@ function Form({ deckId, onDone }: { deckId?: string | null; onDone: () => void }
       const id = addDeck(data);
       toast("Колода создана");
       onDone();
-      router.push(`/deck/?id=${id}`);
+      router.push(`/deck/?id=${encodeURIComponent(id)}`);
     }
   };
 
   return (
     <form onSubmit={save} className="space-y-5">
       <div className="flex items-center gap-4">
-        <DeckIcon icon={icon} size="lg" className="animate-pop" key={icon} />
+        <DeckIcon icon={icon} size="lg" />
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Название"
-          className="input font-display text-lg"
+          className="input text-base font-medium"
           autoFocus={!deck}
         />
       </div>
@@ -72,8 +72,8 @@ function Form({ deckId, onDone }: { deckId?: string | null; onDone: () => void }
                 type="button"
                 onClick={() => setIcon(name)}
                 aria-label={name}
-                className={`grid h-12 place-items-center rounded-2xl border-2 transition ${
-                  icon === name ? "border-text text-text" : "border-transparent bg-surface-2 text-mute"
+                className={`grid h-11 place-items-center rounded-full transition-colors ${
+                  icon === name ? "bg-text text-bg" : "bg-surface-2 text-mute hover:text-text"
                 }`}
               >
                 <Icon size={22} />

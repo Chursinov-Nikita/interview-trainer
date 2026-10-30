@@ -10,6 +10,7 @@ import DeckEditor from "../elements/DeckEditor";
 import DeckIcon from "../elements/DeckIcon";
 import Sheet from "../elements/Sheet";
 import { PageSkeleton } from "../elements/Visuals";
+import { plu } from "../lib/dates";
 import { useReady, useToday } from "../lib/hooks";
 import { downloadJson, slug } from "../lib/io";
 import { cardsOf, countStates, plan } from "../lib/queue";
@@ -26,7 +27,7 @@ export default function DeckView() {
   if (!id || !exists) {
     return (
       <div className="py-20 text-center">
-        <p className="font-display text-xl">Колода не найдена</p>
+        <p className="text-xl font-semibold">Колода не найдена</p>
         <Link href="/decks/" className="btn btn-primary mt-6">
           К колодам
         </Link>
@@ -77,82 +78,88 @@ function Deck({ id, today }: { id: string; today: string }) {
   );
 
   return (
-    <div className="space-y-5">
-      <Link href="/decks/" className="-ml-2 inline-flex animate-fade items-center gap-1 rounded-full px-2 py-1 text-sm font-semibold text-mute hover:bg-surface-2">
-        <ChevronLeft size={18} /> Колоды
+    <div className="space-y-[14px]">
+      <Link href="/decks/" className="inline-flex items-center gap-1 text-sm text-mute hover:text-text">
+        <ChevronLeft size={16} /> Колоды
       </Link>
 
-      <section className="tile animate-rise p-5 sm:p-6">
-        <div className="flex items-start gap-4">
-          <DeckIcon icon={deck.icon} color={deck.color} size="lg" className="animate-pop" />
-          <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl leading-tight">{deck.title}</h1>
-            {deck.description && <p className="mt-1 text-sm text-mute">{deck.description}</p>}
+      <header className="flex flex-wrap items-start justify-between gap-4 pb-4">
+        <div className="flex min-w-0 items-start gap-3.5">
+          <DeckIcon icon={deck.icon} />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-medium">{deck.title}</h1>
+            {deck.description && <p className="mt-1 text-mute">{deck.description}</p>}
           </div>
-          <button onClick={() => setEditDeck(true)} className="grid size-10 shrink-0 place-items-center rounded-full text-dim hover:bg-surface-2" aria-label="Изменить колоду">
-            <Pencil size={18} />
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setEditDeck(true)} className="btn btn-ghost size-9 min-h-0 p-0" aria-label="Изменить колоду">
+            <Pencil size={16} />
           </button>
-        </div>
-
-        <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-          {[
-            { label: "новые", value: states.new, color: "text-easy" },
-            { label: "учу", value: states.learning, color: "text-hard" },
-            { label: "выучено", value: states.learned, color: "text-primary-ink" },
-          ].map((s) => (
-            <div key={s.label} className="rounded-2xl bg-surface-2 py-2.5">
-              <div className={`font-display text-xl tabular-nums ${s.color}`}>{s.value}</div>
-              <div className="text-xs font-semibold text-mute">{s.label}</div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-surface-2">
-          <div className="bg-primary transition-[width] duration-700" style={{ width: `${(states.learned / total) * 100}%` }} />
-          <div className="bg-hard transition-[width] duration-700" style={{ width: `${(states.learning / total) * 100}%` }} />
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-3">
+          <Link href={`/review/?mode=cram&deck=${encodeURIComponent(id)}`} className="btn min-h-9 px-4 text-sm">
+            <Dumbbell size={16} /> Тренировка
+          </Link>
           {due > 0 && (
-            <Link href={`/review/?deck=${id}`} className="btn btn-primary px-3 whitespace-nowrap">
-              <Play size={18} fill="currentColor" /> Учить · {due}
+            <Link href={`/review/?deck=${encodeURIComponent(id)}`} className="btn btn-primary min-h-9 px-4 text-sm">
+              <Play size={14} fill="currentColor" /> Учить · {due}
             </Link>
           )}
-          <Link href={`/review/?mode=cram&deck=${id}`} className={`btn px-3 whitespace-nowrap ${due > 0 ? "btn-soft" : "btn-soft col-span-2"}`}>
-            <Dumbbell size={18} /> {due > 0 ? "Тренировка" : "На сегодня всё · тренировка"}
-          </Link>
         </div>
+      </header>
+
+      <section className="tile p-[22px]" aria-label="Прогресс колоды">
+        <dl className="grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:divide-x sm:divide-line">
+          {[
+            { label: "Всего", value: cards.length },
+            { label: "Новые", value: states.new },
+            { label: "Учу", value: states.learning },
+            { label: "Выучено", value: states.learned },
+          ].map((s, i) => (
+            <div key={s.label} className={i ? "sm:pl-5" : ""}>
+              <dt className="text-[13px] text-dim">{s.label}</dt>
+              <dd className="num mt-1 text-2xl">{s.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-5 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-surface-2">
+          <div className="bg-accent" style={{ width: `${(states.learned / total) * 100}%` }} />
+          <div className="bg-chart-rest" style={{ width: `${(states.learning / total) * 100}%` }} />
+        </div>
+        <p className="mt-2 text-[13px] text-dim">
+          <span className="text-mute">Выучено</span> — интервал от трёх недель · <span className="text-mute">Учу</span> — уже
+          видел, но интервал короче
+        </p>
       </section>
 
-      <div className="flex animate-rise items-center gap-2 [animation-delay:60ms]">
+      <div className="flex items-center gap-2">
         <label className="relative flex-1">
-          <Search size={18} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-dim" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск в колоде" className="input py-2.5 pl-10" type="search" />
+          <Search size={16} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-dim" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск в колоде" className="input rounded-full pl-10" type="search" />
         </label>
-        <button onClick={() => setEditCard("new")} className="btn btn-primary min-h-11 shrink-0 px-4" aria-label="Добавить карточку">
-          <Plus size={20} strokeWidth={2.6} />
+        <button onClick={() => setEditCard("new")} className="btn btn-primary min-h-10 shrink-0 px-4 text-sm" aria-label="Добавить карточку">
+          <Plus size={16} strokeWidth={2.2} />
           <span className="hidden sm:inline">Карточка</span>
         </button>
       </div>
 
-      <div className="no-scrollbar -mx-4 flex animate-rise gap-2 overflow-x-auto px-4 [animation-delay:90ms] sm:mx-0 sm:flex-wrap sm:px-0">
+      <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`shrink-0 rounded-full border-2 px-3.5 py-1.5 text-sm font-semibold transition ${
-              filter === f.id ? "border-primary bg-primary text-on-primary" : "border-line text-mute"
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+              filter === f.id ? "bg-surface-2 text-text" : "text-mute hover:text-text"
             }`}
           >
             {f.label}
           </button>
         ))}
-        <span className="mx-1 w-0.5 shrink-0 rounded bg-line" />
+        <span className="mx-1.5 w-px shrink-0 bg-line" />
         {tags.map((t) => (
           <button
             key={t}
             onClick={() => setTag(tag === t ? null : t)}
-            className={`shrink-0 rounded-full border-2 px-3 py-1.5 font-mono text-xs font-semibold transition ${
-              tag === t ? "border-primary bg-primary-soft text-primary-ink" : "border-line text-mute"
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors ${
+              tag === t ? "bg-surface-2 text-text" : "text-dim hover:text-text"
             }`}
           >
             #{t}
@@ -160,28 +167,29 @@ function Deck({ id, today }: { id: string; today: string }) {
         ))}
       </div>
 
-      <div className="space-y-2.5">
-        {visible.map((card, i) => (
-          <div key={card.id} className="animate-rise" style={{ animationDelay: `${Math.min(i, 12) * 30 + 120}ms` }}>
-            <CardRow card={card} today={today} onEdit={setEditCard} />
-          </div>
+      <div className="space-y-2">
+        <p className="px-1 text-[13px] text-dim">
+          {visible.length === cards.length ? plu(cards.length, ["карточка", "карточки", "карточек"]) : `${visible.length} из ${cards.length}`}
+        </p>
+        {visible.map((card) => (
+          <CardRow key={card.id} card={card} today={today} onEdit={setEditCard} />
         ))}
         {visible.length === 0 && (
-          <p className="py-10 text-center text-mute">{cards.length ? "Под фильтр ничего не подходит" : "Пока пусто — добавь первую карточку"}</p>
+          <p className="tile px-[22px] py-5 text-mute">{cards.length ? "Под фильтр ничего не подходит" : "Пока пусто — добавь первую карточку"}</p>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 pt-4">
+      <div className="flex flex-wrap gap-2 pt-6">
         <button
           onClick={() => {
             downloadJson(exportData(id, false), `synapse-${slug(deck.title)}.json`);
             toast("Колода выгружена");
           }}
-          className="btn btn-outline min-h-10 px-3.5 text-sm"
+          className="btn min-h-9 px-4 text-sm"
         >
           <Download size={16} /> Экспорт колоды
         </button>
-        <button onClick={() => setConfirmDelete(true)} className="btn btn-ghost min-h-10 px-3.5 text-sm text-again">
+        <button onClick={() => setConfirmDelete(true)} className="btn btn-ghost min-h-9 px-4 text-sm text-again">
           <Trash size={16} /> Удалить колоду
         </button>
       </div>

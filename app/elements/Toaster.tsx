@@ -15,7 +15,7 @@ export default function Toaster() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex animate-pop items-center gap-2.5 rounded-2xl bg-text px-4 py-3 text-sm font-semibold text-bg shadow-xl"
+          className="flex animate-pop items-center gap-2.5 rounded-full bg-text px-4 py-2.5 text-sm font-medium text-bg shadow-lg"
         >
           {t.tone === "ok" ? (
             <Check size={18} className="text-easy" strokeWidth={3} />

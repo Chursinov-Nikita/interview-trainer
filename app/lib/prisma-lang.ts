@@ -1,6 +1,5 @@
 import type { LanguageFn } from "highlight.js";
 
-// В highlight.js нет грамматики Prisma — хватает небольшой своей
 const prisma: LanguageFn = (hljs) => ({
   name: "Prisma",
   keywords: {

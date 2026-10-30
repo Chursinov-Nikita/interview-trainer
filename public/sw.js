@@ -22,8 +22,6 @@ const savePage = async (cache, assets, route) => {
   if (rsc && rsc.ok) await cache.put(url + "index.txt", rsc);
 };
 
-// Все экраны и их скрипты кэшируем сразу — приложение целиком работает без сети.
-// Сбой одного файла не должен ронять установку, поэтому allSettled и catch.
 const precache = async () => {
   const cache = await caches.open(CACHE);
   const assets = new Set();
@@ -62,7 +60,6 @@ const networkFirst = async (request) => {
       (await cache.match(request, { ignoreSearch: true })) ||
       (request.mode === "navigate" && (await cache.match(BASE)));
     if (!loose) throw new Error("offline");
-    // Копия без url: иначе роутер Next увидит адрес без ?id= и решит, что был редирект
     return new Response(loose.body, { status: loose.status, statusText: loose.statusText, headers: loose.headers });
   }
 };

@@ -1,14 +1,10 @@
 import { addDays } from "./dates";
 import type { Grade, Srs } from "./types";
 
-// SM-2 в варианте Anki: оригинал SuperMemo ставит оценку 0–5 и сильно режет
-// лёгкость за провал (−0.54), а «с трудом» и «легко» почти не различает по интервалу.
-// Здесь три кнопки и мягкие шаги лёгкости, а «с трудом» растит интервал медленнее.
 const START_EASE = 2.5;
 const MIN_EASE = 1.3;
 const EASE_STEP: Record<Grade, number> = { again: -0.2, hard: -0.15, easy: 0.1 };
 
-/** Карточка с интервалом от трёх недель считается выученной */
 export const LEARNED_DAYS = 21;
 
 export const nextInterval = (srs: Srs | undefined, grade: Grade): number => {

@@ -1,17 +1,11 @@
 export const GRADES = ["again", "hard", "easy"] as const;
-// Тип выводится из массива: добавишь оценку в GRADES — тип обновится сам
 export type Grade = (typeof GRADES)[number];
 
 export type Srs = {
-  /** день следующего показа, YYYY-MM-DD */
   due: string;
-  /** текущий интервал в днях */
   interval: number;
-  /** коэффициент лёгкости SM-2, не ниже 1.3 */
   ease: number;
-  /** сколько раз подряд вспомнил */
   reps: number;
-  /** сколько раз забыл за всё время */
   lapses: number;
   last: string;
 };
@@ -23,11 +17,8 @@ export type Card = {
   back: string;
   tags: string[];
   created: number;
-  /** нет srs — карточка новая */
   srs?: Srs;
-  /** карточка из стартового набора */
   seed?: boolean;
-  /** стартовую карточку правили руками — не перезаписываем при обновлении набора */
   edited?: boolean;
 };
 
@@ -62,9 +53,7 @@ export type DayLog = {
   again: number;
   hard: number;
   easy: number;
-  /** сколько новых карточек увидел впервые */
   fresh: number;
-  /** время в сессиях, мс */
   ms: number;
 };
 

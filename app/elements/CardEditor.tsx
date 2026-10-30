@@ -11,7 +11,6 @@ import { toast } from "../lib/toast";
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** нет id — создаём новую карточку */
   cardId?: string | null;
   deckId?: string | null;
 };
@@ -70,18 +69,18 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
       }}
     >
       <div className="flex items-center gap-2">
-        <select value={deck} onChange={(e) => setDeck(e.target.value)} className="input flex-1 font-semibold">
+        <select value={deck} onChange={(e) => setDeck(e.target.value)} className="input flex-1 font-medium">
           {ordered.map((d) => (
             <option key={d.id} value={d.id}>
               {d.title}
             </option>
           ))}
         </select>
-        <div className="flex shrink-0 rounded-2xl border-2 border-line p-1">
+        <div className="flex shrink-0 rounded-full bg-bg p-1">
           <button
             type="button"
             onClick={() => setPreview(false)}
-            className={`grid size-9 place-items-center rounded-xl ${!preview ? "bg-primary-soft text-primary-ink" : "text-dim"}`}
+            className={`grid size-8 place-items-center rounded-full ${!preview ? "bg-surface-2 text-text" : "text-dim"}`}
             aria-label="Редактор"
           >
             <Pencil size={17} />
@@ -89,7 +88,7 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
           <button
             type="button"
             onClick={() => setPreview(true)}
-            className={`grid size-9 place-items-center rounded-xl ${preview ? "bg-primary-soft text-primary-ink" : "text-dim"}`}
+            className={`grid size-8 place-items-center rounded-full ${preview ? "bg-surface-2 text-text" : "text-dim"}`}
             aria-label="Превью"
           >
             <Eye size={17} />
@@ -99,11 +98,11 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
 
       {preview ? (
         <div className="space-y-3">
-          <div className="rounded-2xl border-2 border-line p-4">
+          <div className="rounded-2xl bg-bg p-4">
             <p className="eyebrow mb-2">Вопрос</p>
             <Markdown className="text-lg font-medium">{front || "_пусто_"}</Markdown>
           </div>
-          <div className="rounded-2xl border-2 border-line p-4">
+          <div className="rounded-2xl bg-bg p-4">
             <p className="eyebrow mb-2">Ответ</p>
             <Markdown>{back || "_пусто_"}</Markdown>
           </div>

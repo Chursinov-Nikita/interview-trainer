@@ -1,4 +1,3 @@
-// Дни храним строками YYYY-MM-DD в местном времени: их удобно сравнивать как строки
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export const isoOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -19,7 +18,6 @@ export const addDays = (iso: string, n: number) => {
 export const diffDays = (from: string, to: string) =>
   Math.round((parse(to).getTime() - parse(from).getTime()) / 86_400_000);
 
-/** Понедельник = 0 */
 export const weekday = (iso: string) => (parse(iso).getDay() + 6) % 7;
 
 export const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -39,7 +37,7 @@ export const intervalLabel = (days: number) => {
   if (days < 7) return `${days} д`;
   if (days < 30) return `${Math.round(days / 7)} нед`;
   if (days < 365) return `${Math.round(days / 30)} мес`;
-  return `${(days / 365).toFixed(1).replace(".0", "")} г`;
+  return `${(days / 365).toFixed(1).replace(".0", "").replace(".", ",")} г`;
 };
 
 export const longDate = (iso: string) =>

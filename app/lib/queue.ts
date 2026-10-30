@@ -24,7 +24,6 @@ export const isDue = (card: Card, day: string) => !!card.srs && card.srs.due <= 
 
 export const newLeftToday = (s: Scope, day: string) => Math.max(0, s.settings.newPerDay - (s.log[day]?.fresh ?? 0));
 
-// Новые карточки берём по очереди из каждой колоды, чтобы темы чередовались
 const freshQueue = (s: Scope, deckId?: string | null) => {
   const decks = deckOrder(s.decks).filter((d) => !deckId || d.id === deckId);
   const lanes = decks.map((d) => cardsOf(s.cards, d.id).filter((c) => !c.srs));
@@ -51,17 +50,17 @@ export const buildSession = (s: Scope, day: string, deckId?: string | null) => {
   return shuffle([...takeDue, ...takeFresh]).map((c) => c.id);
 };
 
-// Свободная тренировка: прогресс не трогаем, чаще берём то, что даётся трудно
 export const buildCram = (s: Scope, deckId?: string | null) => {
   const scored = cardsOf(s.cards, deckId).map((c) => ({
     id: c.id,
     score: c.srs ? c.srs.lapses * 1.5 + (2.6 - c.srs.ease) * 2 + Math.random() * 2 : Math.random() * 1.2,
   }));
-  return scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, s.settings.sessionSize)
-    .map((c) => c.id)
-    .sort(() => Math.random() - 0.5);
+  return shuffle(
+    scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, s.settings.sessionSize)
+      .map((c) => c.id),
+  );
 };
 
 export const countStates = (cards: Card[]) => {
@@ -73,7 +72,6 @@ export const countStates = (cards: Card[]) => {
 export const streakOf = (log: Record<string, DayLog>, day: string) => {
   const active = (d: string) => (log[d]?.reviews ?? 0) > 0;
   let current = 0;
-  // сегодня ещё можно успеть — стрик не сгорает до конца дня
   let cursor = active(day) ? day : addDays(day, -1);
   while (active(cursor)) {
     current++;
@@ -104,3 +102,11 @@ export const hardest = (cards: Card[], limit = 8) =>
     .sort((a, b) => b.srs!.lapses - a.srs!.lapses || a.srs!.ease - b.srs!.ease)
     .slice(0, limit);
 
+export const todayByDeck = (s: Scope, day: string) => {
+  const { due, fresh } = plan(s, day);
+  const counts: Record<string, number> = {};
+  [...due, ...fresh].forEach((c) => {
+    counts[c.deckId] = (counts[c.deckId] ?? 0) + 1;
+  });
+  return counts;
+};

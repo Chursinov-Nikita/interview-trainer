@@ -10,11 +10,9 @@ export const useSound = () => useSyncExternalStore(subscribeSound, isSoundOn, ()
 
 export const useTheme = () => useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
 
-/** Дата нужна только после загрузки базы — до этого показываем скелет */
 export const useReady = () => useStore((s) => s.hydrated);
 
 const subscribeDay = (listener: () => void) => {
-  // смена дня в открытом приложении: проверяем при возврате на вкладку и раз в минуту
   const id = setInterval(listener, 60_000);
   document.addEventListener("visibilitychange", listener);
   return () => {
@@ -25,14 +23,15 @@ const subscribeDay = (listener: () => void) => {
 
 export const useToday = () => useSyncExternalStore(subscribeDay, today, () => "");
 
+const hourNow = () => new Date().getHours();
+export const useHour = () => useSyncExternalStore(subscribeDay, hourNow, () => 12);
+
 const prefersReduced = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** Плавно докручивает число до target */
 export const useCountUp = (target: number, duration = 900, delay = 0) => {
   const [value, setValue] = useState(0);
   useEffect(() => {
-    // без анимаций — сразу финальное число на первом кадре
     const ms = prefersReduced() ? 0 : duration;
     let frame = 0;
     const start = performance.now() + (ms ? delay : 0);

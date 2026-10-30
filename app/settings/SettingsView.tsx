@@ -1,10 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, Keyboard, Minus, Monitor, Moon, Plus, RotateCcw, Smartphone, Sun, Upload, Volume2, VolumeX } from "lucide-react";
+import { Download, Minus, Monitor, Moon, Plus, RotateCcw, Smartphone, Sun, Upload, Volume2, VolumeX } from "lucide-react";
 import Sheet from "../elements/Sheet";
 import { PageSkeleton } from "../elements/Visuals";
-import { today } from "../lib/dates";
+import { plu, today } from "../lib/dates";
 import { useInstall, useReady, useSound, useTheme } from "../lib/hooks";
 import { downloadJson, readExport } from "../lib/io";
 import { setSoundOn, sound } from "../lib/sound";
@@ -59,157 +59,150 @@ function Settings() {
     if (!pending) return;
     const result = importData(pending, mode);
     setPending(null);
-    toast(`Импортировано: ${result.decks} колод, ${result.cards} карточек`);
+    toast(`Импортировано: ${plu(result.decks, ["колода", "колоды", "колод"])}, ${plu(result.cards, ["карточка", "карточки", "карточек"])}`);
   };
 
   return (
-    <div className="space-y-5">
-      <header className="animate-rise">
-        <p className="eyebrow">настройки</p>
-        <h1 className="font-display mt-1 text-3xl">Ещё</h1>
+    <div>
+      <header className="pb-6">
+        <h1 className="text-2xl font-medium">Настройки</h1>
+        <p className="mt-1 text-mute">Всё хранится на этом устройстве и работает без сети</p>
       </header>
 
-      {!installed && (
-        <section className="tile relative animate-rise overflow-hidden p-5 [animation-delay:40ms]">
-          <div className="relative flex items-start gap-4">
-            <div className="grid size-12 shrink-0 animate-float place-items-center rounded-2xl bg-primary text-on-primary">
-              <Smartphone size={24} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display text-base">Установить на телефон</h2>
-              <p className="mt-1 text-sm text-mute">
-                {canPrompt
-                  ? "Иконка на главном экране, полный экран и работа без сети — удобно повторять в метро."
-                  : ios
-                    ? "В Safari нажми «Поделиться» → «На экран „Домой“». Приложение заработает без сети."
-                    : "Открой меню браузера и выбери «Установить приложение» или «Добавить на главный экран»."}
-              </p>
-              {canPrompt && (
-                <button onClick={install} className="btn btn-primary mt-4 min-h-11">
-                  Установить
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
+      <div className="divide-y divide-line">
+        {!installed && (
+          <Row title="Установка" desc="Иконка на главном экране, полный экран и повторения в метро без сети.">
+            <p className="text-mute">
+              {canPrompt
+                ? "Браузер готов установить «Синапс» как приложение."
+                : ios
+                  ? "В Safari нажми «Поделиться» → «На экран „Домой“»."
+                  : "Открой меню браузера и выбери «Установить приложение» или «Добавить на главный экран»."}
+            </p>
+            {canPrompt && (
+              <button onClick={install} className="btn btn-primary mt-4 min-h-9 px-4 text-sm">
+                <Smartphone size={16} /> Установить
+              </button>
+            )}
+          </Row>
+        )}
 
-      <section className="tile animate-rise space-y-5 p-5 [animation-delay:80ms]">
-        <div>
-          <p className="eyebrow mb-2.5">Тема</p>
-          <div className="grid grid-cols-3 gap-1.5 rounded-2xl bg-surface-2 p-1.5">
+        <Row title="Внешний вид" desc="Тема и звуки в сессии повторения.">
+          <p className="text-[13px] text-dim">Тема</p>
+          <div className="mt-2 inline-grid grid-cols-3 gap-1 rounded-full bg-surface-2 p-1">
             {THEMES.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setTheme(id)}
-                className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all ${
-                  theme === id ? "bg-surface-solid text-text" : "text-mute"
+                aria-pressed={theme === id}
+                className={`flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                  theme === id ? "bg-bg text-text" : "text-mute hover:text-text"
                 }`}
               >
-                <Icon size={17} className={theme === id ? "animate-pop" : ""} /> {label}
+                <Icon size={15} /> {label}
               </button>
             ))}
           </div>
-        </div>
-
-        <button
-          onClick={() => {
-            setSoundOn(!soundOn);
-            if (!soundOn) setTimeout(sound.easy, 50);
-          }}
-          className="flex w-full items-center gap-3 text-left"
-          role="switch"
-          aria-checked={soundOn}
-        >
-          {soundOn ? <Volume2 size={22} className="text-text" /> : <VolumeX size={22} className="text-dim" />}
-          <span className="flex-1 font-semibold">Звуки и вибрация</span>
-          <span className={`relative h-8 w-14 rounded-full transition-colors ${soundOn ? "bg-primary" : "bg-surface-2"}`}>
-            <span
-              className={`absolute top-1 size-6 rounded-full shadow transition-all ${soundOn ? "bg-on-primary" : "bg-text"} duration-300 ease-[var(--ease-spring)] ${
-                soundOn ? "left-7" : "left-1"
-              }`}
-            />
-          </span>
-        </button>
-      </section>
-
-      <section className="tile animate-rise space-y-4 p-5 [animation-delay:120ms]">
-        <Stepper
-          label="Новых карточек в день"
-          hint="Сколько незнакомых вопросов добавлять к повторениям"
-          value={settings.newPerDay}
-          min={0}
-          max={60}
-          step={5}
-          onChange={(newPerDay) => setSettings({ newPerDay })}
-        />
-        <div className="border-t-2 border-dashed border-line" />
-        <Stepper
-          label="Карточек в сессии"
-          hint="Короткие сессии легче делать каждый день"
-          value={settings.sessionSize}
-          min={5}
-          max={60}
-          step={5}
-          onChange={(sessionSize) => setSettings({ sessionSize })}
-        />
-      </section>
-
-      <section className="tile animate-rise space-y-3 p-5 [animation-delay:160ms]">
-        <p className="eyebrow">Данные</p>
-        <p className="text-sm text-mute">
-          Всё хранится только на этом устройстве. Сохрани копию, чтобы перенести прогресс на другой телефон или ноутбук.
-        </p>
-        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => {
-              downloadJson(exportData(), `synapse-backup-${today()}.json`);
-              toast("Копия сохранена");
+              setSoundOn(!soundOn);
+              if (!soundOn) setTimeout(sound.easy, 50);
             }}
-            className="btn btn-soft"
+            className="mt-5 flex w-full items-center gap-3 border-t border-line pt-4 text-left"
+            role="switch"
+            aria-checked={soundOn}
           >
-            <Download size={18} /> Экспорт
+            {soundOn ? <Volume2 size={18} className="text-text" /> : <VolumeX size={18} className="text-dim" />}
+            <span className="flex-1">
+              <span className="block font-medium">Звуки и вибрация</span>
+              <span className="block text-[13px] text-dim">Короткий звук на каждую оценку</span>
+            </span>
+            <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${soundOn ? "bg-primary" : "bg-surface-2"}`}>
+              <span
+                className={`absolute top-0.5 size-4 rounded-full transition-[left,background-color] duration-200 ${
+                  soundOn ? "left-[18px] bg-on-primary" : "left-0.5 bg-mute"
+                }`}
+              />
+            </span>
           </button>
-          <button onClick={() => fileRef.current?.click()} className="btn btn-outline">
-            <Upload size={18} /> Импорт
+        </Row>
+
+        <Row
+          title="Повторения"
+          desc={`Сейчас: ${plu(settings.newPerDay, ["новая карточка", "новые карточки", "новых карточек"])} в день, по ${settings.sessionSize} в сессии.`}
+        >
+          <Stepper
+            label="Новых карточек в день"
+            hint="Сколько незнакомых вопросов добавлять к повторениям"
+            value={settings.newPerDay}
+            min={0}
+            max={60}
+            step={5}
+            onChange={(newPerDay) => setSettings({ newPerDay })}
+          />
+          <div className="my-4 border-t border-line" />
+          <Stepper
+            label="Карточек в сессии"
+            hint="Короткие сессии легче делать каждый день"
+            value={settings.sessionSize}
+            min={5}
+            max={60}
+            step={5}
+            onChange={(sessionSize) => setSettings({ sessionSize })}
+          />
+        </Row>
+
+        <Row title="Данные" desc="Сохрани копию, чтобы перенести прогресс на другой телефон или ноутбук.">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => {
+                downloadJson(exportData(), `synapse-backup-${today()}.json`);
+                toast("Копия сохранена");
+              }}
+              className="btn min-h-9 px-4 text-sm"
+            >
+              <Download size={16} /> Экспорт
+            </button>
+            <button onClick={() => fileRef.current?.click()} className="btn min-h-9 px-4 text-sm">
+              <Upload size={16} /> Импорт
+            </button>
+          </div>
+          <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onFile(e.target.files?.[0])} />
+        </Row>
+
+        <Row title="Горячие клавиши" desc="Работают в сессии повторения на компьютере." className="hidden md:grid">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2.5">
+            {KEYS.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt>
+                  <span className="kbd opacity-80">{k}</span>
+                </dt>
+                <dd className="text-mute">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </Row>
+
+        <Row title="Как работает повторение" desc="Алгоритм SM-2 в варианте Anki.">
+          <p className="text-mute">
+            У каждой карточки есть интервал и «лёгкость». «Легко» растит интервал примерно в 2,5 раза, «с трудом» — в 1,2 раза и
+            снижает лёгкость, «не помню» возвращает карточку на завтра и ещё раз в этой же сессии. Карточка с интервалом от
+            трёх недель считается выученной.
+          </p>
+        </Row>
+
+        <Row title="Сброс прогресса" desc="Все карточки станут новыми, статистика и серия обнулятся. Сами карточки останутся.">
+          <button onClick={() => setConfirmReset(true)} className="btn min-h-9 px-4 text-sm text-again">
+            <RotateCcw size={16} /> Сбросить весь прогресс
           </button>
-        </div>
-        <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onFile(e.target.files?.[0])} />
-        <button onClick={() => setConfirmReset(true)} className="btn btn-ghost w-full text-sm text-again">
-          <RotateCcw size={16} /> Сбросить весь прогресс
-        </button>
-      </section>
-
-      <section className="tile hidden animate-rise p-5 [animation-delay:200ms] sm:block">
-        <p className="eyebrow mb-3 flex items-center gap-2">
-          <Keyboard size={16} /> Горячие клавиши в сессии
-        </p>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-          {KEYS.map(([k, v]) => (
-            <div key={k} className="contents">
-              <dt>
-                <span className="kbd opacity-80">{k}</span>
-              </dt>
-              <dd className="text-mute">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <section className="tile animate-rise p-5 text-sm text-mute [animation-delay:240ms]">
-        <p className="eyebrow mb-2">Как работает повторение</p>
-        <p>
-          Алгоритм SM-2: у каждой карточки есть интервал и «лёгкость». «Легко» растит интервал в ~2.5 раза,
-          «с трудом» — в 1.2 раза и снижает лёгкость, «не помню» возвращает карточку на завтра и ещё раз в этой же сессии.
-          Карточка с интервалом от трёх недель считается выученной.
-        </p>
-      </section>
+        </Row>
+      </div>
 
       <Sheet open={!!pending} onClose={() => setPending(null)} title="Импорт">
         {pending && (
           <>
             <p className="text-mute">
-              В файле {pending.decks.length} колод и {pending.cards.length} карточек.
+              В файле {plu(pending.decks.length, ["колода", "колоды", "колод"])} и {plu(pending.cards.length, ["карточка", "карточки", "карточек"])}.
             </p>
             <div className="mt-5 space-y-3">
               <button onClick={() => runImport("merge")} className="btn btn-primary w-full">
@@ -265,30 +258,52 @@ function Stepper({
   return (
     <div className="flex items-center gap-4">
       <div className="min-w-0 flex-1">
-        <p className="font-semibold">{label}</p>
-        <p className="text-xs text-mute">{hint}</p>
+        <p className="font-medium">{label}</p>
+        <p className="text-[13px] text-dim">{hint}</p>
       </div>
       <div className="flex items-center gap-1.5">
         <button
           onClick={() => onChange(Math.max(min, value - step))}
           disabled={value <= min}
-          className="btn btn-outline size-10 min-h-0 rounded-xl p-0"
+          className="btn size-9 min-h-0 p-0"
           aria-label="Меньше"
         >
-          <Minus size={18} />
+          <Minus size={16} />
         </button>
-        <span key={value} className="font-display w-10 animate-pop text-center text-lg tabular-nums">
+        <span className="num w-10 text-center text-base">
           {value}
         </span>
         <button
           onClick={() => onChange(Math.min(max, value + step))}
           disabled={value >= max}
-          className="btn btn-outline size-10 min-h-0 rounded-xl p-0"
+          className="btn size-9 min-h-0 p-0"
           aria-label="Больше"
         >
-          <Plus size={18} />
+          <Plus size={16} />
         </button>
       </div>
     </div>
+  );
+}
+
+function Row({
+  title,
+  desc,
+  children,
+  className = "grid",
+}: {
+  title: string;
+  desc: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`${className} gap-4 py-8 first:pt-0 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)] md:gap-10`}>
+      <div className="md:pt-[22px]">
+        <h2 className="text-base font-medium">{title}</h2>
+        <p className="mt-1 text-mute">{desc}</p>
+      </div>
+      <div className="tile p-[22px]">{children}</div>
+    </section>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Dumbbell, Play, Sparkles } from "lucide-react";
+import { Dumbbell, Play } from "lucide-react";
 import DeckIcon from "../elements/DeckIcon";
-import { PageSkeleton, Ring, StreakFlame, WeekStrip } from "../elements/Visuals";
-import { addDays, longDate, plu } from "../lib/dates";
-import { useCountUp, useReady, useToday } from "../lib/hooks";
-import { cardsOf, countStates, deckOrder, plan, streakOf } from "../lib/queue";
+import MemoryCurve from "../elements/MemoryCurve";
+import { PageSkeleton, WeekStrip } from "../elements/Visuals";
+import { longDate, plu } from "../lib/dates";
+import { useHour, useReady, useToday } from "../lib/hooks";
+import { cardsOf, countStates, deckOrder, plan, streakOf, todayByDeck } from "../lib/queue";
 import { useStore } from "../lib/store";
 
 export default function TodayView() {
@@ -16,151 +17,147 @@ export default function TodayView() {
   return <Today today={today} />;
 }
 
+const greeting = (hour: number) =>
+  hour < 5 ? "Доброй ночи" : hour < 12 ? "Доброе утро" : hour < 18 ? "Добрый день" : "Добрый вечер";
+
 function Today({ today }: { today: string }) {
+  const hour = useHour();
   const decks = useStore((s) => s.decks);
   const cards = useStore((s) => s.cards);
   const log = useStore((s) => s.log);
   const settings = useStore((s) => s.settings);
   const scope = { decks, cards, log, settings };
 
+  const ordered = deckOrder(decks);
   const { due, fresh, total } = plan(scope, today);
   const doneToday = log[today]?.reviews ?? 0;
   const streak = streakOf(log, today);
-  const tomorrow = plan(scope, addDays(today, 1)).due.length;
-  const shown = useCountUp(total, 900, 150);
   const minutes = Math.max(1, Math.round((Math.min(total, settings.sessionSize) * 20) / 60));
 
+  const perDeck = todayByDeck(scope, today);
+  const top = ordered
+    .map((d) => ({ deck: d, due: plan(scope, today, d.id).due.length }))
+    .sort((a, b) => b.due - a.due)[0];
+
+  const finding =
+    total === 0
+      ? doneToday > 0
+        ? `Сегодня ${plu(doneToday, ["повторение", "повторения", "повторений"])} — всё по плану`
+        : "Ничего не ждёт: можно потренироваться без влияния на расписание"
+      : top && top.due > 0
+        ? `Дольше всего ждёт ${top.deck.title}: ${plu(top.due, ["карточка", "карточки", "карточек"])}`
+        : `${plu(fresh.length, ["новая карточка", "новые карточки", "новых карточек"])} на сегодня`;
+
   return (
-    <div className="space-y-6">
-      <header className="flex items-start justify-between gap-4">
-        <div className="animate-rise">
-          <p className="eyebrow">{longDate(today)}</p>
-          <h1 className="font-display mt-1 text-3xl">Сегодня</h1>
-        </div>
-        <div
-          className="flex animate-pop items-center gap-1.5 rounded-2xl border-2 border-line bg-surface px-3 py-2 font-display text-lg"
-          title={streak.today ? "Стрик продлён сегодня" : "Повтори хотя бы одну карточку, чтобы продлить стрик"}
-        >
-          <StreakFlame lit={streak.today} />
-          <span className={streak.today ? "text-flame" : "text-dim"}>{streak.current}</span>
-        </div>
+    <div className="space-y-[14px]">
+      <header className="pb-4">
+        <h1 className="text-2xl font-medium">{greeting(hour)}</h1>
+        <p className="mt-1 text-mute">
+          {longDate(today)} · {finding}
+        </p>
       </header>
 
-      <section className="tile animate-rise overflow-hidden p-5 [animation-delay:60ms] sm:p-6">
-        {total > 0 ? (
-          <>
-            <div className="flex items-center gap-5 sm:gap-7">
-              <Ring value={doneToday / Math.max(1, doneToday + total)}>
-                <div className="text-center">
-                  <div className="font-display text-4xl leading-none tabular-nums">{shown}</div>
-                  <div className="mt-1 text-xs font-semibold text-mute">к повторению</div>
-                </div>
-              </Ring>
-              <div className="min-w-0 space-y-2.5">
-                <p className="font-display text-lg leading-tight sm:text-xl">
-                  {doneToday > 0 ? "Ещё немного" : "Пора освежить память"}
-                </p>
-                <div className="flex flex-wrap gap-1.5 text-sm font-semibold">
-                  {due.length > 0 && (
-                    <span className="rounded-full bg-sky-soft px-2.5 py-1 text-sky-ink">
-                      {plu(due.length, ["повтор", "повтора", "повторов"])}
-                    </span>
-                  )}
-                  {fresh.length > 0 && (
-                    <span className="rounded-full bg-easy-soft px-2.5 py-1 text-easy">
-                      {plu(fresh.length, ["новая", "новые", "новых"])}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-mute">≈ {minutes} мин на сессию</p>
+      <div className="grid gap-[14px] lg:grid-cols-12">
+        <section className="tile flex flex-col p-[22px] lg:col-span-8" aria-labelledby="session-title">
+          <h2 id="session-title" className="text-base font-semibold">
+            Сессия на сегодня
+          </h2>
+          <div className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-4">
+            <div>
+              <div className="num text-4xl leading-none font-semibold">{total}</div>
+              <div className="mt-2 text-mute">{total ? "к повторению" : "на сегодня всё"}</div>
+            </div>
+            <dl className="flex gap-8 pb-0.5">
+              <div>
+                <dt className="text-[13px] text-dim">по расписанию</dt>
+                <dd className="num mt-1 text-2xl leading-none">{due.length}</dd>
               </div>
-            </div>
-            <Link href="/review/" className="btn btn-primary mt-6 w-full text-lg">
-              <Play size={20} fill="currentColor" />
-              Начать
-            </Link>
-          </>
-        ) : (
-          <div className="flex flex-col items-center py-4 text-center">
-            <div className="grid size-20 animate-float place-items-center rounded-2xl bg-surface-2 text-text">
-              <Sparkles size={32} strokeWidth={1.5} />
-            </div>
-            <p className="font-display mt-4 text-2xl">На сегодня всё</p>
-            <p className="mt-1.5 max-w-xs text-mute">
-              {doneToday > 0 ? `${plu(doneToday, ["повторение", "повторения", "повторений"])} сегодня. ` : ""}
-              Завтра ждут {plu(tomorrow, ["карточка", "карточки", "карточек"])}.
-            </p>
-            <Link href="/review/?mode=cram" className="btn btn-soft mt-5 w-full">
-              <Dumbbell size={20} />
-              Свободная тренировка
+              <div>
+                <dt className="text-[13px] text-dim">новых</dt>
+                <dd className="num mt-1 text-2xl leading-none">{fresh.length}</dd>
+              </div>
+              <div>
+                <dt className="text-[13px] text-dim">уже сегодня</dt>
+                <dd className="num mt-1 text-2xl leading-none">{doneToday}</dd>
+              </div>
+            </dl>
+          </div>
+          <div className="mt-auto flex flex-wrap gap-2.5 pt-6">
+            {total > 0 && (
+              <Link href="/review/" className="btn btn-primary min-h-11 px-6">
+                <Play size={16} fill="currentColor" />
+                Начать · ≈ {minutes} мин
+              </Link>
+            )}
+            <Link href="/review/?mode=cram" className={`btn min-h-11 ${total > 0 ? "" : "btn-primary px-6"}`}>
+              <Dumbbell size={16} />
+              {total > 0 ? "Тренировка" : "Свободная тренировка"}
             </Link>
           </div>
-        )}
-      </section>
+        </section>
 
-      <section className="tile animate-rise p-5 [animation-delay:120ms]">
-        <div className="mb-4 flex items-baseline justify-between">
-          <h2 className="font-display text-base">Неделя</h2>
-          <span className="text-sm text-mute">
-            рекорд: {plu(streak.best, ["день", "дня", "дней"])}
-          </span>
-        </div>
-        <WeekStrip log={log} today={today} />
-      </section>
+        <section className="tile p-[22px] lg:col-span-4" aria-labelledby="streak-title">
+          <div className="flex items-baseline justify-between">
+            <h2 id="streak-title" className="text-base font-semibold">
+              Серия
+            </h2>
+            <span className="text-[13px] text-dim">рекорд {plu(streak.best, ["день", "дня", "дней"])}</span>
+          </div>
+          <div className="mt-5 flex items-baseline gap-2">
+            <span className="num text-2xl leading-none">{streak.current}</span>
+            <span className="text-mute">
+              {plu(streak.current, ["день", "дня", "дней"]).replace(/^\d+ /, "")} подряд
+              {!streak.today && streak.current > 0 ? " · продли сегодня" : ""}
+            </span>
+          </div>
+          <div className="mt-6">
+            <WeekStrip log={log} today={today} />
+          </div>
+        </section>
+      </div>
 
-      <section className="space-y-3">
+      <MemoryCurve cards={Object.values(cards)} today={today} />
+
+      <section className="tile p-[22px]" aria-labelledby="decks-title">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-lg">Колоды</h2>
-          <Link href="/decks/" className="text-sm text-mute">
-            Все
+          <h2 id="decks-title" className="text-base font-semibold">
+            Колоды
+          </h2>
+          <Link href="/decks/" className="text-sm text-mute hover:text-text">
+            Все {ordered.length}
           </Link>
         </div>
-        {deckOrder(decks).map((deck, i) => {
-          const deckCards = cardsOf(cards, deck.id);
-          const deckPlan = plan(scope, today, deck.id);
-          const states = countStates(deckCards);
-          const pct = deckCards.length ? Math.round(((states.learned + states.learning * 0.4) / deckCards.length) * 100) : 0;
-          return (
-            <div
-              key={deck.id}
-              className="tile flex animate-rise items-center gap-4 p-3.5 pr-3"
-              style={{ animationDelay: `${180 + i * 50}ms` }}
-            >
-              <Link href={`/deck/?id=${deck.id}`} className="flex min-w-0 flex-1 items-center gap-4">
-                <DeckIcon icon={deck.icon} color={deck.color} />
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {ordered.map((deck) => {
+            const deckCards = cardsOf(cards, deck.id);
+            const states = countStates(deckCards);
+            const deckDue = perDeck[deck.id] ?? 0;
+            const learned = deckCards.length ? states.learned / deckCards.length : 0;
+            return (
+              <Link
+                key={deck.id}
+                href={`/deck/?id=${encodeURIComponent(deck.id)}`}
+                className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3.5 py-3 transition-[filter] hover:brightness-110"
+              >
+                <DeckIcon icon={deck.icon} size="sm" className="bg-bg" />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-semibold">{deck.title}</span>
-                    {deckPlan.total > 0 && (
-                      <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-on-primary">
-                        {deckPlan.total}
-                      </span>
-                    )}
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="truncate font-medium">{deck.title}</span>
+                    <span className="num shrink-0 text-[13px] text-mute">
+                      {deckDue > 0 ? `${deckDue} сегодня` : "—"}
+                    </span>
                   </div>
-                  <div className="mt-2 flex items-center gap-2.5">
-                    <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface-2">
-                      <div className="h-full rounded-full bg-primary transition-[width] duration-700" style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="w-9 text-right text-xs font-semibold text-mute tabular-nums">{pct}%</span>
+                  <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-bg">
+                    <div className="h-full rounded-full bg-accent" style={{ width: `${learned * 100}%` }} />
+                  </div>
+                  <div className="num mt-1.5 text-[13px] text-dim">
+                    выучено {states.learned} из {deckCards.length}
                   </div>
                 </div>
               </Link>
-              {deckPlan.total > 0 ? (
-                <Link
-                  href={`/review/?deck=${deck.id}`}
-                  className="btn btn-primary size-11 min-h-0 rounded-full p-0"
-                  aria-label={`Повторить ${deck.title}`}
-                >
-                  <Play size={18} fill="currentColor" />
-                </Link>
-              ) : (
-                <Link href={`/deck/?id=${deck.id}`} className="grid size-11 place-items-center text-dim" aria-label="Открыть">
-                  <ChevronRight size={22} />
-                </Link>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </section>
     </div>
   );

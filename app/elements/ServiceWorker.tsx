@@ -8,7 +8,6 @@ export default function ServiceWorker() {
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker.register(asset("/sw.js")).catch(() => {});
-    // база в IndexedDB не должна вычищаться браузером при нехватке места
     navigator.storage?.persist?.().catch(() => {});
   }, []);
 

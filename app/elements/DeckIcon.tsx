@@ -14,7 +14,6 @@ export const ICONS: Record<IconName, typeof Atom> = {
   terminal: Terminal,
 };
 
-// color оставлен в пропсах: он хранится в данных колоды и пригодится, если вернём цветные значки
 type Props = { icon: IconName; color?: DeckColor; size?: "sm" | "md" | "lg"; className?: string };
 
 const SIZES = {
