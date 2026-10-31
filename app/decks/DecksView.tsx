@@ -11,7 +11,7 @@ import DeckIcon from "../elements/DeckIcon";
 import { PageSkeleton } from "../elements/Visuals";
 import { plu } from "../lib/dates";
 import { useReady, useToday } from "../lib/hooks";
-import { cardsOf, countStates, deckOrder, plan, todayByDeck } from "../lib/queue";
+import { cardsOf, countStates, deckOrder, matches, normalize, plan, todayByDeck } from "../lib/queue";
 import { useStore } from "../lib/store";
 
 export default function DecksView() {
@@ -21,8 +21,6 @@ export default function DecksView() {
   if (!ready || !today) return <PageSkeleton />;
   return <Decks key={initial} today={today} initialQuery={initial} />;
 }
-
-const normalize = (s: string) => s.toLowerCase().replace(/ё/g, "е");
 
 function Decks({ today, initialQuery }: { today: string; initialQuery: string }) {
   const decks = useStore((s) => s.decks);
@@ -37,9 +35,7 @@ function Decks({ today, initialQuery }: { today: string; initialQuery: string })
   const total = Object.keys(cards).length;
   const ordered = deckOrder(decks);
   const q = normalize(deferred.trim());
-  const found = q
-    ? Object.values(cards).filter((c) => normalize(`${c.front} ${c.back} ${c.tags.join(" ")}`).includes(q))
-    : [];
+  const found = q ? Object.values(cards).filter((c) => matches(c, q)) : [];
   const dueTotal = plan({ decks, cards, log, settings }, today).total;
   const perDeck = todayByDeck({ decks, cards, log, settings }, today);
 

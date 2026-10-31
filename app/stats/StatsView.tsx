@@ -43,7 +43,7 @@ function Stats({ today }: { today: string }) {
     { label: "Серия", value: plu(streak.current, ["день", "дня", "дней"]), note: `рекорд ${streak.best}` },
     { label: "Выучено", value: String(states.learned), note: `из ${cards.length}` },
     { label: "Повторений за неделю", value: String(weekReviews), note: `${minutes} мин всего` },
-    { label: "Помню за неделю", value: accuracy === null ? "—" : `${accuracy}%`, note: "с трудом + легко" },
+    { label: "Помню за неделю", value: accuracy === null ? "—" : `${accuracy}%`, note: "почти + знаю" },
   ];
 
   return (

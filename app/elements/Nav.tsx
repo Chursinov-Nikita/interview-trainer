@@ -43,7 +43,7 @@ export default function Nav() {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={`rounded-full px-3.5 py-1.5 transition-colors ${
-                    active ? "bg-surface text-text" : "text-[#bbbbbb] hover:text-text"
+                    active ? "bg-surface text-text" : "text-mute hover:text-text"
                   }`}
                 >
                   {label}

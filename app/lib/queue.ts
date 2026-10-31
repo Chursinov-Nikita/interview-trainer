@@ -20,6 +20,11 @@ export const cardsOf = (cards: Record<string, Card>, deckId?: string | null) =>
     .filter((c) => !deckId || c.deckId === deckId)
     .sort((a, b) => a.created - b.created);
 
+export const normalize = (s: string) => s.toLowerCase().replace(/ё/g, "е");
+
+export const matches = (card: Card, query: string) =>
+  normalize(`${card.front} ${card.back} ${card.tags.join(" ")}`).includes(query);
+
 export const isDue = (card: Card, day: string) => !!card.srs && card.srs.due <= day;
 
 export const newLeftToday = (s: Scope, day: string) => Math.max(0, s.settings.newPerDay - (s.log[day]?.fresh ?? 0));

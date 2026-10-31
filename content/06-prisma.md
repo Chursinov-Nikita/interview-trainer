@@ -165,7 +165,11 @@ await prisma.stat.upsert({
 });
 ```
 
-`increment`, `decrement`, `multiply` выполняются в БД атомарно — без гонки «прочитал → прибавил → записал». В `where` у `upsert` нужно уникальное поле.
+- `increment`, `decrement`, `multiply`, `divide` выполняются **в БД** одним `UPDATE … SET views = views + 1` — без гонки «прочитал → прибавил → записал».
+- В `where` у `upsert` нужно уникальное поле (`@id` или `@unique`).
+- Если запрос подходит под условия, Prisma превращает `upsert` в нативный `INSERT … ON CONFLICT` — тогда он атомарный и не падает при параллельных вызовах. Иначе возможна ошибка уникальности P2002 при гонке, и запрос стоит повторить.
+
+Неправильно: `const s = await findUnique(); await update({ data: { views: s.views + 1 } })` — два параллельных запроса потеряют одно увеличение.
 
 @@@ prisma-10 | sql, безопасность
 Как безопасно выполнить сырой SQL в Prisma?
@@ -214,9 +218,12 @@ export const prisma = new PrismaClient({ adapter });
 @@@ prisma-13 | cli
 Когда нужно запускать `prisma generate`?
 ???
-После каждого изменения схемы: команда пересоздаёт клиент и типы.
+После каждого изменения `schema.prisma`: команда пересоздаёт клиент и типы. Без неё TypeScript не знает о новых полях и моделях, а в рантайме клиент ничего не знает о новых колонках.
 
-В CI и на хостинге — при установке или сборке (`postinstall` или `"build": "prisma generate && next build"`). Иначе в рантайме окажется старый клиент без новых полей.
+- Локально — после правки схемы и после `git pull`, если схему поменял коллега.
+- В CI и на хостинге — при установке или сборке: `"postinstall": "prisma generate"` или `"build": "prisma generate && next build"`. Иначе соберётся старый клиент.
+
+В Prisma 7 клиент генерируется в папку проекта (`output` в генераторе), поэтому её обычно добавляют в `.gitignore` и всегда генерируют при сборке, а не коммитят.
 
 @@@ prisma-14 | запросы, связи
 Как фильтровать по связям: `some`, `every`, `none`?
@@ -379,3 +386,474 @@ const tags = await prisma.tag.createManyAndReturn({
 - Разработка — `migrate dev`, продакшен и CI — только `migrate deploy`.
 - Если БД изменили руками, `migrate dev` предложит сбросить базу — на общей или боевой базе так нельзя. Расхождения на проде чинят новой миграцией или `migrate resolve`.
 - Опасные изменения (переименование колонки, `NOT NULL` без дефолта) разбивают на шаги: добавить → перенести данные → удалить старое.
+
+@@@ prisma-24 | схема, связи
+Как описать связь один-к-одному?
+???
+Внешний ключ на одной стороне и `@unique` на нём — чтобы на одного пользователя был максимум один профиль:
+
+```prisma
+model User {
+  id      Int      @id @default(autoincrement())
+  email   String   @unique
+  profile Profile?
+}
+
+model Profile {
+  id     Int    @id @default(autoincrement())
+  bio    String
+  userId Int    @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+```
+
+- Сторона с `fields` и `references` хранит внешний ключ в таблице (`Profile.userId`).
+- На другой стороне поле `profile Profile?` существует только в Prisma Client — колонки в `User` нет.
+- `Profile?` — у пользователя профиля может не быть. Обязательным его на стороне без ключа сделать нельзя.
+
+Какую сторону выбрать для ключа: ту, которая не может существовать без другой. Профиль без пользователя не нужен — ключ в профиле.
+
+@@@ prisma-25 | схема, связи
+Как описать связь модели с самой собой (дерево категорий, подписчики)?
+???
+Self-relation — связь, где обе стороны — одна и та же модель. Её нужно **назвать** в `@relation`, чтобы Prisma поняла, какие поля составляют пару:
+
+```prisma
+model Category {
+  id       Int        @id @default(autoincrement())
+  name     String
+  parentId Int?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+}
+```
+
+Запрос дерева на два уровня:
+
+```ts
+const roots = await prisma.category.findMany({
+  where: { parentId: null },
+  include: { children: { include: { children: true } } },
+});
+```
+
+Подписчики — это многие-ко-многим на себя:
+
+```prisma
+model User {
+  id        Int    @id @default(autoincrement())
+  followers User[] @relation("Follows")
+  following User[] @relation("Follows")
+}
+```
+
+Глубокое дерево неизвестной глубины Prisma за один запрос не загрузит — для этого нужен рекурсивный CTE через `$queryRaw`.
+
+@@@ prisma-26 | схема, удаление
+Как настроить, что происходит со связанными записями при удалении?
+???
+Через `onDelete` в `@relation` — Prisma создаст соответствующий внешний ключ в базе:
+
+```prisma
+model Comment {
+  id       Int   @id @default(autoincrement())
+  postId   Int
+  post     Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId Int?
+  author   User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+}
+```
+
+Варианты: `Cascade` (удалить вместе с родителем), `SetNull` (обнулить ссылку, поле должно быть необязательным), `Restrict` и `NoAction` (запретить удаление, пока есть дети), `SetDefault`.
+
+По умолчанию для обязательной связи — `Restrict`, для необязательной — `SetNull`.
+
+Частая ошибка: удаляют пользователя и получают ошибку внешнего ключа, потому что у него остались посты, а `onDelete` не указан. Решение — явно выбрать поведение в схеме и сделать миграцию, а не удалять детей вручную перед каждым удалением.
+
+@@@ prisma-27 | запросы, nested writes
+Как создать запись вместе со связанными одним запросом?
+???
+Вложенные записи (nested writes) — Prisma выполнит всё в **одной транзакции**:
+
+```ts
+const user = await prisma.user.create({
+  data: {
+    email: "ann@example.com",
+    profile: { create: { bio: "Фронтенд" } },
+    posts: {
+      create: [{ title: "Первый пост" }, { title: "Второй пост" }],
+    },
+    tags: {
+      connectOrCreate: {
+        where: { name: "react" },
+        create: { name: "react" },
+      },
+    },
+  },
+  include: { posts: true, profile: true },
+});
+```
+
+- `create` — создать связанную запись;
+- `connect` — привязать существующую по уникальному полю: `{ connect: { id: 5 } }`;
+- `connectOrCreate` — привязать, если есть, иначе создать.
+
+Если любая часть упадёт (например, email уже занят), не сохранится ничего. Это проще и надёжнее, чем создавать записи по очереди и передавать id вручную.
+
+@@@ prisma-28 | запросы, many-to-many
+Как изменить связи многие-ко-многим: добавить, убрать, заменить?
+???
+В `update` у поля-связи есть операции `connect`, `disconnect` и `set`:
+
+```ts
+// добавить теги 3 и 4, убрать тег 1
+await prisma.post.update({
+  where: { id: postId },
+  data: {
+    tags: {
+      connect: [{ id: 3 }, { id: 4 }],
+      disconnect: [{ id: 1 }],
+    },
+  },
+});
+
+// заменить все теги поста на переданный список
+await prisma.post.update({
+  where: { id: postId },
+  data: { tags: { set: tagIds.map((id) => ({ id })) } },
+});
+
+// убрать все теги
+await prisma.post.update({ where: { id: postId }, data: { tags: { set: [] } } });
+```
+
+`set` удобен для формы с мультиселектом: не нужно вычислять, что добавили и что убрали.
+
+Для связи один-ко-многим `disconnect` работает только если поле-ссылка необязательное — иначе запись без родителя существовать не может.
+
+@@@ prisma-29 | запросы, ошибки
+Что будет, если `update` или `delete` не найдут запись? Чем отличаются `updateMany` и `deleteMany`?
+???
+- `update` и `delete` работают с **одной** записью по уникальному полю. Если её нет — бросают ошибку с кодом **P2025** («Record not found»).
+- `updateMany` и `deleteMany` работают с **набором** по любому фильтру и не падают, если ничего не нашлось, — возвращают `{ count: 0 }`.
+
+```ts
+const { count } = await prisma.post.updateMany({
+  where: { id: postId, authorId: userId }, // заодно проверка владельца
+  data: { title },
+});
+if (count === 0) throw new Error("Пост не найден или нет доступа");
+```
+
+Этот приём удобен для проверки прав: условие на владельца в `where` выполняется атомарно, без отдельного `findFirst`.
+
+Минус `updateMany`: он не возвращает сами записи. Для PostgreSQL есть `updateManyAndReturn` — он вернёт обновлённые строки.
+
+@@@ prisma-30 | ошибки, обработка
+Как обрабатывать ошибки Prisma: дубль email, запись не найдена?
+???
+Ошибки базы приходят как `PrismaClientKnownRequestError` с кодом:
+
+```ts
+import { Prisma } from "@/generated/prisma/client";
+
+try {
+  await prisma.user.create({ data: { email } });
+} catch (e) {
+  if (e instanceof Prisma.PrismaClientKnownRequestError) {
+    if (e.code === "P2002") return { error: "Этот email уже зарегистрирован" };
+    if (e.code === "P2025") return { error: "Запись не найдена" };
+  }
+  throw e; // неизвестную ошибку не глотаем
+}
+```
+
+Частые коды:
+
+- **P2002** — нарушено уникальное ограничение;
+- **P2025** — нужная для операции запись не найдена;
+- **P2003** — нарушен внешний ключ (например, удаление родителя, у которого есть дети).
+
+Лучше ловить P2002, чем заранее проверять `findUnique`: между проверкой и вставкой другой запрос может успеть создать такую же запись. Уникальный индекс в базе — единственная надёжная гарантия.
+
+@@@ prisma-31 | запросы, агрегаты
+Как посчитать связанные записи и отсортировать по их количеству?
+???
+Через специальное поле `_count`:
+
+```ts
+const users = await prisma.user.findMany({
+  select: {
+    id: true,
+    name: true,
+    _count: { select: { posts: true, comments: true } },
+  },
+  orderBy: { posts: { _count: "desc" } },
+  take: 10,
+});
+// [{ id: 1, name: "Аня", _count: { posts: 12, comments: 40 } }, ...]
+```
+
+Можно считать с условием:
+
+```ts
+_count: { select: { posts: { where: { published: true } } } }
+```
+
+Prisma посчитает всё на стороне базы, без загрузки самих постов. Неправильный вариант — `include: { posts: true }` и `posts.length` в коде: загрузятся все посты всех пользователей только ради числа.
+
+@@@ prisma-32 | запросы, агрегаты
+Как сделать `GROUP BY` и агрегаты в Prisma?
+???
+`aggregate` — агрегаты по всей выборке:
+
+```ts
+const stats = await prisma.order.aggregate({
+  where: { status: "PAID" },
+  _sum: { total: true },
+  _avg: { total: true },
+  _count: true,
+});
+// { _sum: { total: 15000 }, _avg: { total: 500 }, _count: 30 }
+```
+
+`groupBy` — агрегаты по группам, с `having` и сортировкой:
+
+```ts
+const byUser = await prisma.order.groupBy({
+  by: ["userId"],
+  where: { status: "PAID" },
+  _sum: { total: true },
+  _count: { _all: true },
+  having: { total: { _sum: { gt: 1000 } } },
+  orderBy: { _sum: { total: "desc" } },
+});
+```
+
+Ограничение: `groupBy` группирует только по полям самой модели, без связей. Для отчётов с `JOIN`, оконными функциями и группировкой по месяцу используют `$queryRaw` или представление в базе.
+
+@@@ prisma-33 | запросы, поиск
+Как искать без учёта регистра в Prisma?
+???
+В фильтрах строк добавляют `mode: "insensitive"`:
+
+```ts
+const products = await prisma.product.findMany({
+  where: {
+    OR: [
+      { name: { contains: query, mode: "insensitive" } },
+      { description: { contains: query, mode: "insensitive" } },
+    ],
+  },
+});
+```
+
+В PostgreSQL это превращается в `ILIKE '%query%'`. Есть также `startsWith`, `endsWith`, `equals`.
+
+Что важно знать:
+
+- `mode` поддерживается для PostgreSQL и MongoDB; в MySQL регистр обычно и так не учитывается из-за collation;
+- `contains` даёт `LIKE` с `%` в начале — обычный индекс не работает, на большой таблице нужен GIN-индекс с `pg_trgm` (через миграцию с SQL);
+- значение передаётся параметром, поэтому SQL-инъекции здесь нет.
+
+Для настоящего полнотекстового поиска с морфологией лучше `$queryRaw` с `to_tsvector` или внешний поисковый движок.
+
+@@@ prisma-34 | типы, сериализация
+Какие проблемы с `Decimal`, `BigInt` и `DateTime` при отдаче данных клиенту?
+???
+Prisma возвращает не только примитивы:
+
+- `Decimal` → объект `Prisma.Decimal` (decimal.js) — для денег, без ошибок float;
+- `BigInt` → JS `bigint`;
+- `DateTime` → `Date`.
+
+Проблемы:
+
+```ts
+JSON.stringify({ id: 1n });   // TypeError: Do not know how to serialize a BigInt
+```
+
+- `bigint` не сериализуется в JSON — в Route Handler ответ упадёт;
+- `Decimal` — экземпляр класса, а в клиентский компонент Next.js можно передать только простые объекты; при `JSON.stringify` он превратится в строку;
+- `Date` в Server → Client Components передаётся нормально, но в JSON становится строкой ISO — на клиенте её нужно снова превратить в дату.
+
+Решение — явно преобразовать данные на границе (DTO):
+
+```ts
+const dto = { ...product, price: product.price.toString(), id: product.id.toString() };
+```
+
+Цену удобно хранить в копейках как `Int` — тогда `Decimal` вообще не нужен.
+
+@@@ prisma-35 | cli, seed
+Как заполнить базу начальными данными (seed) в Prisma 7?
+???
+Пишут скрипт и указывают команду его запуска в `prisma.config.ts`:
+
+```ts
+// prisma.config.ts
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
+  },
+  datasource: { url: env("DATABASE_URL") },
+});
+```
+
+```ts
+// prisma/seed.ts
+import { prisma } from "../src/lib/prisma";
+
+await prisma.category.createMany({
+  data: [{ name: "Еда" }, { name: "Транспорт" }],
+  skipDuplicates: true,
+});
+```
+
+Запуск — `npx prisma db seed`. В Prisma 7 `migrate dev` и `migrate reset` больше не запускают сид сами — его вызывают явно.
+
+Хороший сид **идемпотентный**: повторный запуск не создаёт дубли (`upsert`, `skipDuplicates`). Сиды — для справочников и тестовых данных разработки; в продакшен-базу справочники обычно добавляют миграцией.
+
+@@@ prisma-36 | схема, связи
+Как описать две связи между одними и теми же моделями (автор и редактор поста)?
+???
+Если между двумя моделями больше одной связи, Prisma не может сама понять, какие поля образуют пару. Каждой связи дают имя:
+
+```prisma
+model User {
+  id           Int    @id @default(autoincrement())
+  writtenPosts Post[] @relation("WrittenPosts")
+  editedPosts  Post[] @relation("EditedPosts")
+}
+
+model Post {
+  id       Int   @id @default(autoincrement())
+  title    String
+  authorId Int
+  author   User  @relation("WrittenPosts", fields: [authorId], references: [id])
+  editorId Int?
+  editor   User? @relation("EditedPosts", fields: [editorId], references: [id])
+}
+```
+
+Имя в `@relation("…")` должно совпадать на обеих сторонах. Без имён `prisma validate` выдаст ошибку о неоднозначной связи.
+
+Запрос:
+
+```ts
+const post = await prisma.post.findUnique({
+  where: { id },
+  include: { author: true, editor: true },
+});
+```
+
+@@@ prisma-37 | схема, unique
+Как сделать уникальность по нескольким полям и искать по ней?
+???
+Атрибут `@@unique` на уровне модели:
+
+```prisma
+model Like {
+  id     Int @id @default(autoincrement())
+  userId Int
+  postId Int
+
+  @@unique([userId, postId])
+}
+```
+
+Теперь пользователь не сможет лайкнуть пост дважды — это гарантирует уникальный индекс в базе.
+
+Искать по составному ключу через `findUnique` — Prisma склеивает имена полей через `_`:
+
+```ts
+const like = await prisma.like.findUnique({
+  where: { userId_postId: { userId, postId } },
+});
+
+await prisma.like.upsert({
+  where: { userId_postId: { userId, postId } },
+  create: { userId, postId },
+  update: {},
+});
+```
+
+Имя можно задать самому: `@@unique([userId, postId], name: "userPost")`. Для связующих таблиц часто вместо `id` делают составной первичный ключ `@@id([userId, postId])` — он работает так же.
+
+@@@ prisma-38 | cli, интроспекция
+Что делают `prisma db pull` и Prisma Studio?
+???
+**`prisma db pull`** (интроспекция) читает структуру существующей базы и генерирует по ней `schema.prisma`. Нужен, когда:
+
+- подключаешь Prisma к базе, которую создали без неё;
+- кто-то поменял базу вручную, и нужно синхронизировать схему.
+
+После `db pull` модели обычно переименовывают в PascalCase через `@@map("users")` и `@map("created_at")`, чтобы в коде были привычные имена, а в базе остались прежние.
+
+**Prisma Studio** (`npx prisma studio`) — визуальный редактор данных в браузере: посмотреть таблицы, отфильтровать, поправить запись, проверить связи. Удобно при разработке вместо SQL-клиента.
+
+Важно: `db pull` перезаписывает схему. Если в проекте есть миграции, ручные изменения в базе лучше оформить миграцией, а не подтягивать в схему, — иначе история миграций разойдётся с реальной базой (drift).
+
+@@@ prisma-39 | отладка, логи
+Как увидеть SQL, который генерирует Prisma?
+???
+Включить логирование при создании клиента:
+
+```ts
+export const prisma = new PrismaClient({
+  adapter,
+  log: ["query", "warn", "error"],
+});
+```
+
+Чтобы видеть ещё параметры и длительность — логирование через события:
+
+```ts
+const prisma = new PrismaClient({
+  adapter,
+  log: [{ emit: "event", level: "query" }],
+});
+
+prisma.$on("query", (e) => {
+  console.log(e.query, e.params, `${e.duration} мс`);
+});
+```
+
+Зачем: найти N+1 (десятки одинаковых запросов подряд), посмотреть, какой SQL получился из сложного `include`, и взять медленный запрос для `EXPLAIN ANALYZE`.
+
+В продакшене логирование всех запросов включают осторожно: это много записей, а в параметрах могут оказаться личные данные.
+
+@@@ prisma-40 | конкурентность, блокировки
+Как сделать оптимистичную блокировку в Prisma?
+???
+Добавить в модель поле версии и обновлять запись только если версия не изменилась:
+
+```prisma
+model Product {
+  id      Int @id @default(autoincrement())
+  stock   Int
+  version Int @default(0)
+}
+```
+
+```ts
+const product = await prisma.product.findUniqueOrThrow({ where: { id } });
+
+const { count } = await prisma.product.updateMany({
+  where: { id, version: product.version },
+  data: { stock: product.stock - qty, version: { increment: 1 } },
+});
+
+if (count === 0) {
+  throw new Error("Товар только что изменили — обновите страницу");
+}
+```
+
+Используется `updateMany`, потому что в его `where` можно добавить не только уникальное поле. Если кто-то успел обновить запись между чтением и записью, версия уже другая, `count` будет `0`, и чужое изменение не перезапишется.
+
+Подходит для форм редактирования, где два менеджера могут одновременно править одну карточку. Для простых счётчиков достаточно атомарного `{ decrement: qty }`.

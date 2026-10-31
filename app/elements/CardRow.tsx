@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Pencil, RotateCcw, Trash } from "lucide-react";
 import Markdown from "./Markdown";
-import { diffDays, intervalLabel } from "../lib/dates";
+import { diffDays, inDays } from "../lib/dates";
 import { stateOf } from "../lib/srs";
 import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
@@ -14,7 +14,7 @@ const STATE_DOT = { new: "bg-easy", learning: "bg-hard", learned: "bg-accent" } 
 export const dueLabel = (card: Card, today: string) => {
   if (!card.srs) return "новая";
   const days = diffDays(today, card.srs.due);
-  return days <= 0 ? "пора повторить" : `через ${intervalLabel(days)}`;
+  return days <= 0 ? "пора повторить" : inDays(days);
 };
 
 export default function CardRow({

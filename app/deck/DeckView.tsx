@@ -13,7 +13,7 @@ import { PageSkeleton } from "../elements/Visuals";
 import { plu } from "../lib/dates";
 import { useReady, useToday } from "../lib/hooks";
 import { downloadJson, slug } from "../lib/io";
-import { cardsOf, countStates, plan } from "../lib/queue";
+import { cardsOf, countStates, matches, normalize, plan } from "../lib/queue";
 import { stateOf, type CardState } from "../lib/srs";
 import { exportData, useStore } from "../lib/store";
 import { toast } from "../lib/toast";
@@ -54,7 +54,7 @@ function Deck({ id, today }: { id: string; today: string }) {
   const deleteDeck = useStore((s) => s.deleteDeck);
 
   const [query, setQuery] = useState("");
-  const deferred = useDeferredValue(query.trim().toLowerCase());
+  const deferred = useDeferredValue(normalize(query.trim()));
   const [filter, setFilter] = useState<CardState | "all">("all");
   const [tag, setTag] = useState<string | null>(null);
   const [editCard, setEditCard] = useState<string | null | "new">(null);
@@ -74,7 +74,7 @@ function Deck({ id, today }: { id: string; today: string }) {
     (c) =>
       (filter === "all" || stateOf(c.srs) === filter) &&
       (!tag || c.tags.includes(tag)) &&
-      (!deferred || `${c.front} ${c.back}`.toLowerCase().includes(deferred)),
+      (!deferred || matches(c, deferred)),
   );
 
   return (

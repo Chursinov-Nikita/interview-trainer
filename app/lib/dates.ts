@@ -32,12 +32,18 @@ const plural = (n: number, one: string, few: string, many: string) => {
 
 export const plu = (n: number, forms: [string, string, string]) => `${n} ${plural(n, ...forms)}`;
 
-export const intervalLabel = (days: number) => {
-  if (days < 1) return "сейчас";
-  if (days < 7) return `${days} д`;
-  if (days < 30) return `${Math.round(days / 7)} нед`;
-  if (days < 365) return `${Math.round(days / 30)} мес`;
-  return `${(days / 365).toFixed(1).replace(".0", "").replace(".", ",")} г`;
+const spell = (n: number, forms: [string, string, string]) => (n === 1 ? forms[0] : plu(n, forms));
+
+export const inDays = (days: number) => {
+  if (days < 1) return "сегодня";
+  if (days === 1) return "завтра";
+  if (days < 7) return `через ${plu(days, ["день", "дня", "дней"])}`;
+  if (days < 30) return `через ${spell(Math.round(days / 7), ["неделю", "недели", "недель"])}`;
+  if (days < 365) return `через ${spell(Math.round(days / 30), ["месяц", "месяца", "месяцев"])}`;
+  const years = Math.round(days / 182.5) / 2;
+  return Number.isInteger(years)
+    ? `через ${spell(years, ["год", "года", "лет"])}`
+    : `через ${String(years).replace(".", ",")} года`;
 };
 
 export const longDate = (iso: string) =>

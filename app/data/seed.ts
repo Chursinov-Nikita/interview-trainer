@@ -161,7 +161,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "js-18",
         "front": "Что делают `?.` и `??`? Чем `??` отличается от `||`?",
-        "back": "`a?.b?.()` — безопасный доступ: вернёт `undefined`, если `a` — `null` или `undefined`.\n\n`??` подставляет значение только для `null`/`undefined`, а `||` — для **любого** falsy (`0`, `''`, `false`):\n\n```js\nconst count = 0;\ncount || 10; // 10 — неожиданно\ncount ?? 10; // 0\n```",
+        "back": "`a?.b?.()` — безопасный доступ: если слева `null` или `undefined`, вся цепочка сразу вернёт `undefined` без ошибки. Работает и для вызова `fn?.()`, и для индекса `arr?.[0]`.\n\n`??` подставляет значение только для `null`/`undefined`, а `||` — для **любого** falsy (`0`, `''`, `false`, `NaN`):\n\n```js\nconst count = 0;\ncount || 10; // 10 — неожиданно\ncount ?? 10; // 0\n\nsettings.volume ??= 50; // присвоить, только если там null/undefined\n```\n\nЛовушка: `?.` не стоит ставить везде подряд — он маскирует ошибки там, где значение обязано быть. Смешивать `??` с `||` или `&&` без скобок нельзя — это синтаксическая ошибка.",
         "tags": [
           "операторы"
         ]
@@ -261,6 +261,204 @@ export const SEED: SeedDeck[] = [
         "tags": [
           "массивы",
           "группировка"
+        ]
+      },
+      {
+        "id": "js-30",
+        "front": "Что такое `Symbol` и где он применяется?",
+        "back": "`Symbol()` — примитив, гарантированно уникальный: `Symbol(\"id\") !== Symbol(\"id\")`. Описание в скобках нужно только для отладки.\n\nЗачем нужен:\n\n- **Ключи без конфликтов.** Символьное свойство не пересечётся с чужими полями и не видно в `for...in`, `Object.keys` и `JSON.stringify`.\n- **Встроенные (well-known) символы** настраивают поведение объекта: `Symbol.iterator` делает его перебираемым, `Symbol.toPrimitive` управляет приведением к примитиву, `Symbol.asyncIterator` — для `for await`.\n\n```js\nconst range = {\n  from: 1,\n  to: 3,\n  *[Symbol.iterator]() {\n    for (let i = this.from; i <= this.to; i++) yield i;\n  },\n};\n[...range]; // [1, 2, 3]\n```\n\n`Symbol.for(\"app.key\")` берёт символ из глобального реестра: один и тот же для всех вызовов с этим ключом.",
+        "tags": [
+          "symbol",
+          "типы"
+        ]
+      },
+      {
+        "id": "js-31",
+        "front": "Что такое дескрипторы свойств, геттеры и сеттеры?",
+        "back": "У каждого свойства есть флаги: `writable` (можно менять), `enumerable` (видно в `Object.keys` и `for...in`), `configurable` (можно удалить и перенастроить).\n\n```js\nconst user = {};\nObject.defineProperty(user, \"id\", { value: 1, writable: false, enumerable: true });\nuser.id = 2;   // молча игнорируется, в строгом режиме — TypeError\n```\n\nУ `defineProperty` все флаги по умолчанию `false`, у обычного присваивания — `true`.\n\nГеттер и сеттер — вычисляемое свойство, которое выглядит как обычное поле:\n\n```js\nconst temp = {\n  celsius: 20,\n  get fahrenheit() { return this.celsius * 1.8 + 32; },\n  set fahrenheit(f) { this.celsius = (f - 32) / 1.8; },\n};\ntemp.fahrenheit = 212; // temp.celsius === 100\n```\n\nПосмотреть флаги: `Object.getOwnPropertyDescriptor(obj, \"key\")`.",
+        "tags": [
+          "объекты",
+          "дескрипторы"
+        ]
+      },
+      {
+        "id": "js-32",
+        "front": "Чем отличаются `Object.freeze`, `Object.seal` и `Object.preventExtensions`?",
+        "back": "Это три ступени защиты объекта, от мягкой к строгой:\n\n- `preventExtensions` — нельзя **добавлять** новые свойства; удалять и менять можно;\n- `seal` — нельзя добавлять и **удалять**; менять значения можно;\n- `freeze` — нельзя ничего: ни добавлять, ни удалять, ни **менять**.\n\n```js\nconst user = Object.seal({ name: \"Аня\" });\nuser.name = \"Боб\"; // ок\ndelete user.name;  // не сработает\nuser.age = 20;     // не сработает\n```\n\nВажные детали:\n\n- Все три **поверхностные**: `Object.freeze(config)` не замораживает `config.db` — вложенный объект можно менять. Для глубокой заморозки нужен рекурсивный обход.\n- Нарушение в обычном режиме молча игнорируется, а в строгом (модули, классы) бросает `TypeError`.\n- `const` и `freeze` — разные вещи: `const` запрещает переприсвоить переменную, `freeze` — менять сам объект.\n\nВ TypeScript для того же на уровне типов есть `Readonly<T>` и `as const`, но они работают только при компиляции.",
+        "tags": [
+          "объекты",
+          "иммутабельность"
+        ]
+      },
+      {
+        "id": "js-33",
+        "front": "Что такое классы в JS под капотом?",
+        "back": "Синтаксис поверх прототипов: методы класса попадают в `Class.prototype`, а экземпляр ссылается на него через `[[Prototype]]`.\n\n```js\nclass Animal {\n  #secret = 42;           // приватное поле, недоступно снаружи\n  static count = 0;       // поле самого класса, а не экземпляра\n  constructor(name) { this.name = name; }\n  speak() { return `${this.name} издаёт звук`; }\n}\n\nclass Dog extends Animal {\n  speak() { return `${super.speak()}: гав`; }\n}\n\ntypeof Animal;                                       // \"function\"\nObject.getPrototypeOf(Dog.prototype) === Animal.prototype; // true\n```\n\nОтличия от функций-конструкторов: класс нельзя вызвать без `new`, тело класса всегда в строгом режиме, методы не перечисляются в `for...in`, а в наследнике нужно вызвать `super()` до обращения к `this`.",
+        "tags": [
+          "классы",
+          "прототипы"
+        ]
+      },
+      {
+        "id": "js-34",
+        "front": "Чем стрелочная функция отличается от обычной?",
+        "back": "- **Нет своего `this`** — берётся из окружения, где стрелка создана. `call`, `apply` и `bind` его не меняют.\n- **Нет `arguments`** — используй rest-параметры `(...args)`.\n- **Нельзя вызвать с `new`** и нет `prototype`.\n- Не может быть генератором.\n\n```js\nclass Timer {\n  seconds = 0;\n  start() {\n    setInterval(() => this.seconds++, 1000); // this — экземпляр\n    // с function () { this.seconds++ } this был бы потерян\n  }\n}\n```\n\nКогда стрелка **не** подходит: методы объекта, которым нужен `this` объекта (`{ getName: () => this.name }` вернёт не то), и обработчики, где нужен `this` как элемент.",
+        "tags": [
+          "функции",
+          "this"
+        ]
+      },
+      {
+        "id": "js-35",
+        "front": "Когда срабатывают значения по умолчанию в деструктуризации и параметрах?",
+        "back": "Только когда значение строго `undefined`. `null`, `0` и `\"\"` дефолт **не** заменяет:\n\n```js\nconst { limit = 10 } = { limit: null };\nlimit; // null\n\nfunction greet(name = \"гость\") { return name; }\ngreet(undefined); // \"гость\"\ngreet(null);      // null\n```\n\nПолезные приёмы:\n\n```js\nconst { a: { b } = {} } = obj;          // вложенный дефолт, если obj.a нет\nconst { id, ...rest } = user;           // rest — объект без id\nconst [first, , third] = list;          // пропуск элемента\nfunction f({ page = 1, size = 20 } = {}) {} // можно вызвать f() без аргументов\n```\n\nЕсли `null` тоже нужно заменить, используй `??`: `const limit = options.limit ?? 10`.",
+        "tags": [
+          "деструктуризация",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "js-36",
+        "front": "Что такое каррирование? Напиши `curry`.",
+        "back": "Превращение функции от нескольких аргументов в цепочку функций, каждая из которых принимает часть аргументов: `sum(1, 2, 3)` → `sum(1)(2)(3)`.\n\n```js\nfunction curry(fn) {\n  return function curried(...args) {\n    if (args.length >= fn.length) return fn.apply(this, args);\n    return (...next) => curried.apply(this, [...args, ...next]);\n  };\n}\n\nconst sum = curry((a, b, c) => a + b + c);\nsum(1)(2)(3); // 6\nsum(1, 2)(3); // 6\n```\n\n`fn.length` — число объявленных параметров (без rest и параметров со значениями по умолчанию).\n\nЗачем на практике: частичное применение и заготовки функций — `const logError = log(\"error\")`, `const byId = prop(\"id\")`. В React похожий приём — обработчик, который возвращает обработчик: `onClick={select(id)}`.",
+        "tags": [
+          "функции",
+          "каррирование"
+        ]
+      },
+      {
+        "id": "js-37",
+        "front": "Что такое мемоизация? Напиши `memoize`.",
+        "back": "Кэширование результата функции по аргументам: повторный вызов с теми же аргументами возвращает готовый ответ, не пересчитывая. Подходит только для **чистых** функций.\n\n```js\nfunction memoize(fn) {\n  const cache = new Map();\n  return (...args) => {\n    const key = JSON.stringify(args);\n    if (!cache.has(key)) cache.set(key, fn(...args));\n    return cache.get(key);\n  };\n}\n\nconst slowSquare = (n) => n * n;\nconst fastSquare = memoize(slowSquare);\n```\n\nПодводные камни, которые спрашивают на собесе:\n\n- `JSON.stringify` плохо работает с функциями, `Map`, циклическими ссылками; для одного аргумента-объекта лучше `WeakMap` с объектом как ключом.\n- Кэш растёт бесконечно — нужен лимит (LRU) или сброс.\n- Асинхронную функцию тоже можно мемоизировать — кэшируется промис, и параллельные вызовы получат один запрос.",
+        "tags": [
+          "функции",
+          "кэш"
+        ]
+      },
+      {
+        "id": "js-38",
+        "front": "Напиши свой `Promise.all`.",
+        "back": "```js\nfunction promiseAll(items) {\n  return new Promise((resolve, reject) => {\n    const list = Array.from(items);\n    const results = new Array(list.length);\n    let left = list.length;\n    if (left === 0) return resolve(results);\n\n    list.forEach((item, i) => {\n      Promise.resolve(item).then((value) => {\n        results[i] = value;\n        if (--left === 0) resolve(results);\n      }, reject);\n    });\n  });\n}\n```\n\nНа что смотрят:\n\n- результаты кладутся **по индексу**, а не в порядке завершения;\n- `Promise.resolve(item)` позволяет передавать и обычные значения;\n- первая ошибка сразу отклоняет общий промис (остальные запросы при этом не отменяются);\n- пустой массив — сразу `[]`.",
+        "tags": [
+          "промисы",
+          "задача"
+        ]
+      },
+      {
+        "id": "js-39",
+        "front": "Напиши полифил `Function.prototype.bind`.",
+        "back": "`bind` возвращает новую функцию с привязанным `this` и частью аргументов:\n\n```js\nFunction.prototype.myBind = function (context, ...bound) {\n  const fn = this;\n  return function (...args) {\n    return fn.apply(context, [...bound, ...args]);\n  };\n};\n\nconst user = { name: \"Аня\" };\nfunction hello(greeting, mark) { return `${greeting}, ${this.name}${mark}`; }\n\nconst hi = hello.myBind(user, \"Привет\");\nhi(\"!\"); // \"Привет, Аня!\"\n```\n\nЧем настоящий `bind` сложнее: если связанную функцию вызвать с `new`, привязанный `this` игнорируется и создаётся новый объект. Повторный `bind` уже связанной функции `this` не меняет.",
+        "tags": [
+          "функции",
+          "полифил"
+        ]
+      },
+      {
+        "id": "js-40",
+        "front": "Как ограничить время ожидания промиса или запроса?",
+        "back": "Для любого промиса — гонка с таймером:\n\n```js\nconst withTimeout = (promise, ms) => {\n  let timer;\n  const timeout = new Promise((_, reject) => {\n    timer = setTimeout(() => reject(new Error(\"Timeout\")), ms);\n  });\n  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));\n};\n```\n\nМинус: исходная операция продолжает выполняться, мы просто перестаём её ждать.\n\nДля `fetch` есть способ лучше — он действительно отменяет запрос:\n\n```js\nconst res = await fetch(url, { signal: AbortSignal.timeout(5000) });\n// при таймауте — ошибка с name === \"TimeoutError\"\n```\n\nСовместить ручную отмену и таймаут: `AbortSignal.any([controller.signal, AbortSignal.timeout(5000)])`.",
+        "tags": [
+          "промисы",
+          "таймауты"
+        ]
+      },
+      {
+        "id": "js-41",
+        "front": "Почему `fetch` не бросает ошибку на 404 или 500?",
+        "back": "`fetch` отклоняет промис только при **сетевой** ошибке: нет сети, CORS, DNS, отмена. Ответ 404 или 500 — это успешно полученный HTTP-ответ, промис выполняется, а `res.ok` равен `false`.\n\n```js\nasync function getJson(url) {\n  const res = await fetch(url);\n  if (!res.ok) throw new Error(`HTTP ${res.status}`);\n  return res.json();\n}\n```\n\nЕщё отличия от axios:\n\n- тело нужно прочитать вручную: `res.json()`, `res.text()` — и только один раз;\n- нет встроенного таймаута (используют `AbortSignal.timeout`);\n- для отправки JSON нужно самому сделать `JSON.stringify` и указать заголовок `Content-Type: application/json`;\n- cookies на другой домен уходят только с `credentials: \"include\"`.",
+        "tags": [
+          "fetch",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "js-42",
+        "front": "Чем отличаются `preventDefault`, `stopPropagation` и фаза перехвата?",
+        "back": "- `preventDefault()` отменяет **действие браузера по умолчанию**: переход по ссылке, отправку формы, прокрутку. Событие продолжает всплывать.\n- `stopPropagation()` останавливает **распространение** события к другим элементам. Действие браузера при этом выполнится.\n- `stopImmediatePropagation()` — ещё и не даёт сработать остальным обработчикам на этом же элементе.\n\nФаза перехвата (capturing) идёт **до** всплытия, от `window` вниз к цели:\n\n```js\ndocument.addEventListener(\"click\", log, { capture: true }); // сработает первым\n```\n\nПолезные опции: `{ once: true }` — обработчик удалится после первого вызова; `{ passive: true }` — обещание не вызывать `preventDefault`, что ускоряет прокрутку на `touchmove` и `wheel`.\n\nЛовушка: `stopPropagation` ломает делегирование и аналитику, которые слушают события выше, — используй его осознанно.",
+        "tags": [
+          "dom",
+          "события"
+        ]
+      },
+      {
+        "id": "js-43",
+        "front": "Чем отличаются `<script>`, `async` и `defer`?",
+        "back": "- **Обычный `<script>`** блокирует разбор HTML: браузер останавливается, скачивает и выполняет скрипт, потом продолжает.\n- **`async`** скачивается параллельно и выполняется **сразу, как загрузится**, прерывая разбор. Порядок между скриптами не гарантирован. Подходит для независимых скриптов: аналитика, реклама.\n- **`defer`** скачивается параллельно, выполняется **после разбора HTML**, перед `DOMContentLoaded`, строго в порядке подключения. Подходит для основного кода приложения.\n\n```html\n<script src=\"analytics.js\" async></script>\n<script src=\"vendor.js\" defer></script>\n<script src=\"app.js\" defer></script>\n```\n\n`<script type=\"module\">` по умолчанию ведёт себя как `defer`. Старый совет «ставь скрипты в конец `<body>`» решал ту же проблему до появления `defer`.",
+        "tags": [
+          "браузер",
+          "загрузка"
+        ]
+      },
+      {
+        "id": "js-44",
+        "front": "Как работает HTTP-кэширование: `Cache-Control`, `ETag`?",
+        "back": "Сервер говорит браузеру, сколько можно хранить ответ, через заголовок `Cache-Control`:\n\n- `max-age=31536000, immutable` — хранить год и не перепроверять. Так отдают статику с хешем в имени (`app.3f9a.js`): новая версия — новое имя файла.\n- `no-cache` — хранить можно, но перед использованием **обязательно** спросить сервер. Так отдают HTML.\n- `no-store` — не хранить вообще (личные данные).\n- `private` / `public` — можно ли кэшировать на CDN и прокси.\n\nПерепроверка (revalidation): сервер присылает `ETag: \"abc\"` (отпечаток содержимого). Браузер в следующий раз отправит `If-None-Match: \"abc\"`, и если ничего не изменилось, сервер ответит `304 Not Modified` без тела — экономия трафика.\n\n`stale-while-revalidate=60` разрешает показать устаревший ответ и обновить его в фоне.",
+        "tags": [
+          "http",
+          "кэширование"
+        ]
+      },
+      {
+        "id": "js-45",
+        "front": "Где хранить токен авторизации: `localStorage` или cookie?",
+        "back": "**`localStorage`** доступен любому JS на странице. Если на сайте найдётся XSS, скрипт злоумышленника прочитает токен и отправит себе.\n\n**Cookie с флагами** безопаснее:\n\n```\nSet-Cookie: session=…; HttpOnly; Secure; SameSite=Lax; Path=/\n```\n\n- `HttpOnly` — JS не может прочитать cookie, украсть её через XSS нельзя;\n- `Secure` — только по HTTPS;\n- `SameSite=Lax` — не отправляется с запросами с чужих сайтов (кроме переходов по ссылке), это базовая защита от CSRF.\n\nЧастая схема с JWT: короткоживущий access-токен в памяти приложения и долгоживущий refresh-токен в `HttpOnly` cookie. Важно: XSS всё равно опасен — скрипт может слать запросы от имени пользователя, просто не унесёт токен с собой.",
+        "tags": [
+          "безопасность",
+          "авторизация"
+        ]
+      },
+      {
+        "id": "js-46",
+        "front": "Что такое CSRF и как от него защищаются?",
+        "back": "Cross-Site Request Forgery — чужой сайт заставляет браузер пользователя отправить запрос на ваш сайт. Браузер автоматически приложит cookie, и сервер решит, что запрос сделал сам пользователь.\n\n```html\n<!-- на сайте злоумышленника -->\n<form action=\"https://bank.example/transfer\" method=\"POST\">\n  <input name=\"to\" value=\"hacker\" />\n</form>\n<script>document.forms[0].submit()</script>\n```\n\nЗащита:\n\n- `SameSite=Lax` или `Strict` у сессионной cookie — главная защита в современных браузерах;\n- CSRF-токен: случайное значение в форме, которое сервер сверяет с сессией;\n- проверка заголовков `Origin` / `Referer`;\n- не менять данные GET-запросами.\n\nЕсли токен передаётся в заголовке `Authorization`, а не в cookie, классический CSRF не работает — браузер не подставляет этот заголовок сам. Server Actions в Next.js сверяют `Origin` с `Host` автоматически.",
+        "tags": [
+          "безопасность",
+          "csrf"
+        ]
+      },
+      {
+        "id": "js-47",
+        "front": "Что такое Content Security Policy?",
+        "back": "Заголовок ответа, который говорит браузеру, откуда странице **разрешено** загружать скрипты, стили, картинки и куда отправлять запросы. Даже если злоумышленник внедрит `<script>`, браузер его не выполнит.\n\n```\nContent-Security-Policy:\n  default-src 'self';\n  script-src 'self' 'nonce-r4nd0m';\n  img-src 'self' https://cdn.example.com;\n  connect-src 'self' https://api.example.com;\n  object-src 'none';\n  frame-ancestors 'none'\n```\n\n- `'self'` — только свой домен;\n- `nonce` — разрешает конкретные inline-скрипты с этим одноразовым значением, без небезопасного `'unsafe-inline'`;\n- `frame-ancestors 'none'` — запрет встраивать сайт в iframe (защита от кликджекинга).\n\nВнедряют постепенно: сначала `Content-Security-Policy-Report-Only` — нарушения только логируются, ничего не ломается. CSP — второй рубеж: экранировать данные всё равно нужно.",
+        "tags": [
+          "безопасность",
+          "csp"
+        ]
+      },
+      {
+        "id": "js-48",
+        "front": "Как получать обновления с сервера в реальном времени: polling, SSE, WebSocket?",
+        "back": "- **Polling** — запрос раз в N секунд. Просто и работает везде, но много пустых запросов и задержка до N секунд.\n- **Long polling** — сервер держит запрос открытым, пока не появятся данные. Меньше пустых ответов, но сложнее на сервере.\n- **SSE (Server-Sent Events)** — одно HTTP-соединение, по которому сервер шлёт события **в одну сторону**. Автопереподключение из коробки. Хорошо для уведомлений, ленты, стриминга ответа ИИ.\n- **WebSocket** — постоянное **двустороннее** соединение. Для чатов, совместного редактирования, игр. Переподключение и heartbeat придётся писать самому.\n\n```js\nconst events = new EventSource(\"/api/notifications\");\nevents.onmessage = (e) => show(JSON.parse(e.data));\n```\n\nПравило выбора: если клиенту нужно только получать — SSE; если обе стороны часто шлют сообщения — WebSocket.",
+        "tags": [
+          "сеть",
+          "realtime"
+        ]
+      },
+      {
+        "id": "js-49",
+        "front": "Что такое Web Workers и когда они нужны?",
+        "back": "JavaScript в браузере выполняется в одном главном потоке — там же, где отрисовка и обработка кликов. Тяжёлое вычисление на 2 секунды заморозит интерфейс на 2 секунды.\n\nWeb Worker — отдельный поток для вычислений. У него нет доступа к DOM, общение — сообщениями:\n\n```js\n// main.js\nconst worker = new Worker(new URL(\"./worker.js\", import.meta.url), { type: \"module\" });\nworker.postMessage(bigArray);\nworker.onmessage = (e) => render(e.data);\n\n// worker.js\nself.onmessage = (e) => self.postMessage(heavySort(e.data));\n```\n\nКогда нужны: парсинг больших файлов (CSV, Excel), обработка изображений, шифрование, поиск по большому массиву.\n\nДанные при передаче **копируются** (structured clone). Большие бинарные буферы можно передать без копирования — как transferable-объекты.",
+        "tags": [
+          "браузер",
+          "производительность"
+        ]
+      },
+      {
+        "id": "js-50",
+        "front": "Что такое `IntersectionObserver` и где он нужен?",
+        "back": "API, которое сообщает, когда элемент появляется в области видимости или уходит из неё. Работает асинхронно и не нагружает главный поток, в отличие от обработчика `scroll` с `getBoundingClientRect`.\n\n```js\nconst observer = new IntersectionObserver(\n  (entries) => {\n    entries.forEach((entry) => {\n      if (entry.isIntersecting) loadMore();\n    });\n  },\n  { rootMargin: \"200px\" }, // сработать за 200px до появления\n);\nobserver.observe(sentinel);\n// при размонтировании: observer.disconnect()\n```\n\nГде применяют: бесконечная лента (следим за элементом в конце списка), ленивая загрузка картинок и тяжёлых блоков, анимации при прокрутке, учёт просмотров рекламы.\n\nДля картинок обычно хватает встроенного `<img loading=\"lazy\">`. Родственники: `ResizeObserver` (изменение размеров элемента) и `MutationObserver` (изменения DOM).",
+        "tags": [
+          "dom",
+          "observer"
+        ]
+      },
+      {
+        "id": "js-51",
+        "front": "Как правильно форматировать числа, валюту и даты?",
+        "back": "Встроенным API `Intl` — он знает правила локали, и не нужно склеивать строки вручную:\n\n```js\nnew Intl.NumberFormat(\"ru-RU\", { style: \"currency\", currency: \"RUB\" }).format(1234.5);\n// \"1 234,50 ₽\"\n\nnew Intl.DateTimeFormat(\"ru-RU\", { day: \"numeric\", month: \"long\" }).format(new Date());\n// \"31 октября\"\n\nnew Intl.RelativeTimeFormat(\"ru\", { numeric: \"auto\" }).format(-1, \"day\");\n// \"вчера\"\n\nnew Intl.PluralRules(\"ru-RU\").select(5); // \"many\" — для «5 карточек»\n```\n\nКороткие варианты: `num.toLocaleString(\"ru-RU\")` и `date.toLocaleDateString(\"ru-RU\")`.\n\nСовет: создание форматтера — дорогая операция. В списке на тысячи строк создай его один раз снаружи и вызывай `.format()`. И помни, что результат зависит от локали: на сервере и клиенте она может отличаться, что даст hydration mismatch.",
+        "tags": [
+          "intl",
+          "форматирование"
         ]
       }
     ]
@@ -445,7 +643,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "ts-21",
         "front": "Почему `Omit` на union-типе ломает discriminated union?",
-        "back": "`Omit<A | B, \"id\">` работает с `keyof (A | B)` — а это только **общие** ключи. Результат схлопывается в один объект, уникальные поля теряются.\n\nРешение — дистрибутивный `Omit`:\n\n```ts\ntype DistributiveOmit<T, K extends PropertyKey> =\n  T extends unknown ? Omit<T, K> : never;\n```",
+        "back": "`Omit<A | B, \"id\">` работает с `keyof (A | B)` — а это только **общие** ключи. Результат схлопывается в один объект, уникальные поля и связь «тип → поля» теряются:\n\n```ts\ntype Shape =\n  | { id: string; kind: \"circle\"; radius: number }\n  | { id: string; kind: \"square\"; size: number };\n\ntype Bad = Omit<Shape, \"id\">;\n// { kind: \"circle\" | \"square\" } — radius и size пропали\n```\n\nРешение — дистрибутивный `Omit`: условный тип применяет `Omit` к каждому члену union отдельно.\n\n```ts\ntype DistributiveOmit<T, K extends PropertyKey> =\n  T extends unknown ? Omit<T, K> : never;\n\ntype Good = DistributiveOmit<Shape, \"id\">;\n// { kind: \"circle\"; radius: number } | { kind: \"square\"; size: number }\n```\n\nТо же касается `Pick` и любых своих mapped types поверх union.",
         "tags": [
           "union",
           "utility types",
@@ -472,7 +670,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "ts-24",
         "front": "Что такое `.d.ts` и declaration merging? Как расширить чужой тип?",
-        "back": "`.d.ts` содержит только типы. Интерфейсы с одним именем сливаются — так расширяют библиотеки:\n\n```ts\ndeclare module \"next-auth\" {\n  interface Session {\n    user: { id: string; role: \"admin\" | \"user\" };\n  }\n}\n\ndeclare global {\n  interface Window {\n    analytics: Analytics;\n  }\n}\n```",
+        "back": "`.d.ts` — файл только с типами, без кода. Так поставляются типы библиотек (`@types/*`) и описываются глобальные объекты.\n\n**Declaration merging**: интерфейсы с одним именем в одной области сливаются в один. С `type` так не получится — повторное объявление будет ошибкой. Через слияние расширяют чужие типы:\n\n```ts\ndeclare module \"next-auth\" {\n  interface Session {\n    user: { id: string; role: \"admin\" | \"user\" };\n  }\n}\n\ndeclare global {\n  interface Window {\n    analytics: Analytics;\n  }\n}\n\nexport {}; // файл должен быть модулем, чтобы работал declare global\n```\n\nДля файлов без типов: `declare module \"*.svg\" { const src: string; export default src; }`.",
         "tags": [
           "d.ts",
           "модули"
@@ -489,7 +687,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "ts-26",
         "front": "Какой тип у ошибки в `catch` и как с ней работать?",
-        "back": "При `strict` — `unknown`: бросить можно что угодно, не только `Error`. Сужай:\n\n```ts\ntry {\n  await save();\n} catch (e) {\n  const message = e instanceof Error ? e.message : String(e);\n  toast(message);\n}\n```",
+        "back": "При `strict` (флаг `useUnknownInCatchVariables`) — `unknown`. Причина: бросить можно что угодно — строку, объект, `null`, а не только `Error`. Без флага там `any`, и `e.message` компилируется, даже если его нет.\n\nСужай перед использованием:\n\n```ts\ntry {\n  await save();\n} catch (e) {\n  const message = e instanceof Error ? e.message : String(e);\n  toast(message);\n}\n```\n\nАннотировать `catch (e: Error)` нельзя — разрешены только `unknown` и `any`. Для своих ошибок удобно завести класс `class ApiError extends Error { status = 0 }` и проверять `e instanceof ApiError`.",
         "tags": [
           "unknown",
           "ошибки"
@@ -498,7 +696,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "ts-27",
         "front": "Как получить тип данных, которые возвращает async-функция?",
-        "back": "```ts\nasync function getUser() {\n  return { id: 1, name: \"Ann\" };\n}\n\ntype User = Awaited<ReturnType<typeof getUser>>;\n// { id: number; name: string }\n```\n\n`Awaited` разворачивает промисы рекурсивно, даже вложенные.",
+        "back": "`ReturnType` даст `Promise<…>`, поэтому оборачиваем в `Awaited`:\n\n```ts\nasync function getUser() {\n  return { id: 1, name: \"Ann\" };\n}\n\ntype User = Awaited<ReturnType<typeof getUser>>;\n// { id: number; name: string }\n```\n\n`typeof getUser` берёт тип функции, `ReturnType` — её результат, `Awaited` разворачивает промис. Он работает рекурсивно: `Awaited<Promise<Promise<string>>>` → `string`.\n\nТак типы выводятся из реализации и не расходятся с ней. Аналогично `Parameters<typeof fn>[0]` даёт тип первого аргумента.",
         "tags": [
           "utility types",
           "async"
@@ -525,7 +723,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "ts-30",
         "front": "Что делает `NoInfer<T>`?",
-        "back": "(TS 5.4) Запрещает выводить дженерик из этого места:\n\n```ts\nfunction createFSM<S extends string>(states: S[], initial: NoInfer<S>) {}\n\ncreateFSM([\"idle\", \"run\"], \"jump\"); // ошибка: S выводится только из states\n```\n\nБез `NoInfer` TS расширил бы `S` до `\"idle\" | \"run\" | \"jump\"`.",
+        "back": "(TS 5.4) Запрещает выводить дженерик из этого места. Параметр всё равно проверяется, но не влияет на то, каким получится `T`:\n\n```ts\nfunction createFSM<S extends string>(states: S[], initial: NoInfer<S>) {}\n\ncreateFSM([\"idle\", \"run\"], \"idle\"); // ок\ncreateFSM([\"idle\", \"run\"], \"jump\"); // ошибка: S выводится только из states\n```\n\nБез `NoInfer` TS собрал бы `S` из обоих аргументов — `\"idle\" | \"run\" | \"jump\"` — и опечатка прошла бы молча.\n\nТипичные места: значение по умолчанию, начальное состояние, `fallback`-аргумент, который должен быть одним из уже переданных вариантов.",
         "tags": [
           "generics",
           "новое"
@@ -534,7 +732,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "ts-31",
         "front": "Чем отличаются `A | B` и `A & B`?",
-        "back": "`A | B` — значение **одного** из типов: до сужения доступны только общие поля.\n\n`A & B` — значение **обоих** сразу: доступны все поля. Для примитивов `string & number` → `never`.\n\nИнтуиция: у union больше значений и меньше гарантий, у пересечения — наоборот.",
+        "back": "`A | B` — значение **одного** из типов. До сужения доступны только общие поля:\n\n```ts\nfunction show(x: string | string[]) {\n  x.length;          // ок: есть у обоих\n  x.toUpperCase();   // ошибка: у массива нет\n}\n```\n\n`A & B` — значение **обоих** сразу: доступны все поля. Пересечение объектов — способ «сложить» типы: `type Admin = User & { permissions: string[] }`. Для несовместимых примитивов `string & number` → `never`.\n\nИнтуиция через множества: у union больше допустимых значений и меньше гарантий, у пересечения — меньше значений и больше гарантий.",
         "tags": [
           "union",
           "основы"
@@ -655,6 +853,150 @@ export const SEED: SeedDeck[] = [
           "пересечения",
           "never"
         ]
+      },
+      {
+        "id": "ts-45",
+        "front": "Напиши `DeepPartial<T>` — `Partial`, который работает на всех уровнях вложенности.",
+        "back": "Встроенный `Partial` делает необязательными только поля верхнего уровня. Рекурсивный тип обходит вложенные объекты:\n\n```ts\ntype DeepPartial<T> = T extends object\n  ? { [K in keyof T]?: DeepPartial<T[K]> }\n  : T;\n\ntype Config = { db: { host: string; port: number }; debug: boolean };\n\nconst patch: DeepPartial<Config> = { db: { port: 5433 } }; // ок\n```\n\nДля массивов и функций это условие тоже сработает (они `object`). Массивы mapped type обработает корректно, а функции лучше пропускать отдельной веткой: `T extends (...args: any[]) => unknown ? T : …`.\n\nПо тому же шаблону пишут `DeepReadonly<T>` — с модификатором `readonly` вместо `?`. Где применяют: патчи конфигов, моки в тестах, частичные обновления форм.",
+        "tags": [
+          "рекурсивные типы",
+          "mapped types"
+        ]
+      },
+      {
+        "id": "ts-46",
+        "front": "Как типизировать функцию `pick(obj, keys)`?",
+        "back": "Ключи ограничиваем `keyof T`, а результат собираем встроенным `Pick`:\n\n```ts\nfunction pick<T extends object, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {\n  const out = {} as Pick<T, K>;\n  for (const key of keys) out[key] = obj[key];\n  return out;\n}\n\nconst user = { id: 1, name: \"Аня\", password: \"secret\" };\nconst safe = pick(user, [\"id\", \"name\"]); // { id: number; name: string }\npick(user, [\"email\"]); // ошибка: \"email\" нет в keyof\n```\n\nКак это работает: TS выводит `K` из массива как union литералов `\"id\" | \"name\"`. `as Pick<T, K>` нужен, потому что пустой объект ещё не соответствует результату — это осознанное утверждение внутри реализации, а снаружи функция полностью типобезопасна.",
+        "tags": [
+          "generics",
+          "keyof"
+        ]
+      },
+      {
+        "id": "ts-47",
+        "front": "Чем assertion-функция (`asserts x is T`) отличается от type guard?",
+        "back": "Type guard возвращает `boolean`, и тип сужается **внутри `if`**. Assertion-функция ничего не возвращает: она либо бросает ошибку, либо гарантирует тип **до конца области видимости**.\n\n```ts\nfunction assertIsDefined<T>(value: T, name: string): asserts value is NonNullable<T> {\n  if (value === null || value === undefined) {\n    throw new Error(`${name} не задан`);\n  }\n}\n\nconst el = document.querySelector(\"#root\");\nassertIsDefined(el, \"#root\");\nel.append(\"ok\"); // el: Element, без if и без !\n```\n\nЕсть короткая форма `asserts condition` — как в `node:assert`.\n\nОграничение: такую функцию нужно вызывать через явно типизированное имя (объявление `function` или переменная с аннотацией типа), иначе TS выдаст ошибку о том, что assertion требует явной аннотации.",
+        "tags": [
+          "narrowing",
+          "assertion functions"
+        ]
+      },
+      {
+        "id": "ts-48",
+        "front": "Чем `abstract class` отличается от `interface`? Что делает `implements`?",
+        "back": "**Интерфейс** — только контракт: что должно быть у объекта. После компиляции от него ничего не остаётся.\n\n**Абстрактный класс** — частичная реализация: в нём может быть общий код, поля, конструктор, а абстрактные методы обязаны реализовать наследники. Создать его экземпляр нельзя, а в JS он остаётся обычным классом.\n\n```ts\ninterface Storage {\n  get(key: string): string | null;\n}\n\nabstract class Repository<T> {\n  protected cache = new Map<string, T>();\n  abstract load(id: string): Promise<T>;\n  async get(id: string) {\n    if (!this.cache.has(id)) this.cache.set(id, await this.load(id));\n    return this.cache.get(id)!;\n  }\n}\n\nclass UserRepo extends Repository<User> implements Storage { … }\n```\n\n`implements` лишь **проверяет**, что класс соответствует интерфейсу, — ничего не наследует. Наследовать (`extends`) можно один класс, реализовать — сколько угодно интерфейсов.",
+        "tags": [
+          "классы",
+          "ооп"
+        ]
+      },
+      {
+        "id": "ts-49",
+        "front": "Что такое variadic tuple types и именованные элементы кортежа?",
+        "back": "Кортеж с `...` внутри может склеивать другие кортежи:\n\n```ts\ntype Concat<A extends unknown[], B extends unknown[]> = [...A, ...B];\ntype R = Concat<[1, 2], [\"a\"]>; // [1, 2, \"a\"]\n\ntype Range = [start: number, end: number]; // имена видны в подсказках IDE\ntype Args = [id: string, ...tags: string[]]; // rest внутри кортежа\n```\n\nГлавное применение — типизация функций, которые работают с аргументами других функций:\n\n```ts\nfunction partial<A extends unknown[], R>(\n  fn: (first: string, ...rest: A) => R,\n  first: string,\n) {\n  return (...rest: A) => fn(first, ...rest);\n}\n\nconst greet = (name: string, age: number) => `${name}, ${age}`;\nconst greetAnn = partial(greet, \"Аня\"); // (age: number) => string\n```\n\nИмена элементов ни на что не влияют при проверке типов — они только для читаемости.",
+        "tags": [
+          "generics",
+          "кортежи"
+        ]
+      },
+      {
+        "id": "ts-50",
+        "front": "Как описать тип для любого JSON-значения?",
+        "back": "Рекурсивным union — тип ссылается сам на себя:\n\n```ts\ntype Json =\n  | string\n  | number\n  | boolean\n  | null\n  | Json[]\n  | { [key: string]: Json };\n\nconst ok: Json = { a: [1, \"two\", { b: null }] };\nconst bad: Json = { date: new Date() }; // ошибка: Date — не Json\n```\n\nЗачем: так описывают то, что гарантированно переживёт `JSON.stringify`, — например, данные для `localStorage`, тело запроса или пропсы, которые серверный компонент передаёт в клиентский.\n\n`undefined`, функции, `Date`, `Map` и `bigint` в JSON не входят — `JSON.stringify` их потеряет, превратит в строку или упадёт с ошибкой.",
+        "tags": [
+          "рекурсивные типы",
+          "json"
+        ]
+      },
+      {
+        "id": "ts-51",
+        "front": "Как переименовать ключи в mapped type? Напиши `Getters<T>`.",
+        "back": "В mapped type после `as` можно задать новое имя ключа (key remapping, TS 4.1):\n\n```ts\ntype Getters<T> = {\n  [K in keyof T as `get${Capitalize<string & K>}`]: () => T[K];\n};\n\ntype User = { name: string; age: number };\ntype UserGetters = Getters<User>;\n// { getName: () => string; getAge: () => number }\n```\n\n`string & K` нужен, потому что ключом может быть `number` или `symbol`, а `Capitalize` работает только со строками.\n\nЕсли после `as` вернуть `never`, ключ исчезнет — так фильтруют поля:\n\n```ts\ntype OnlyStrings<T> = {\n  [K in keyof T as T[K] extends string ? K : never]: T[K];\n};\ntype R = OnlyStrings<User>; // { name: string }\n```",
+        "tags": [
+          "mapped types",
+          "template literals"
+        ]
+      },
+      {
+        "id": "ts-52",
+        "front": "Чем `void` отличается от `undefined` в типе возврата?",
+        "back": "`undefined` — конкретное значение: функция обязана вернуть `undefined`.\n\n`void` — «результат не используется». Поэтому функцию, которая **что-то** возвращает, можно передать туда, где ждут `() => void`:\n\n```ts\nconst nums: number[] = [];\n[1, 2].forEach((n) => nums.push(n)); // push возвращает number — и это ок\n\ntype Handler = () => void;\nconst h: Handler = () => 42; // разрешено\nconst x = h(); // x: void — использовать нельзя\n```\n\nЭто сделано специально, чтобы колбэки вроде `forEach` и обработчиков событий принимали любые функции.\n\nЛовушка: при **объявлении** функции `function f(): void { return 42; }` — уже ошибка. Послабление работает только при присваивании типа функции. Для асинхронных колбэков `() => void` скрывает промис — линтер `no-misused-promises` ловит такие места.",
+        "tags": [
+          "функции",
+          "void"
+        ]
+      },
+      {
+        "id": "ts-53",
+        "front": "Как типизировать события в React и расширить пропсы нативного элемента?",
+        "back": "События — дженерики по типу элемента:\n\n```tsx\nconst onChange = (e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value);\nconst onSubmit = (e: React.FormEvent<HTMLFormElement>) => e.preventDefault();\nconst onClick = (e: React.MouseEvent<HTMLButtonElement>) => {};\nconst onKey = (e: React.KeyboardEvent) => e.key === \"Enter\" && save();\n```\n\nПодсказка: напиши обработчик сначала прямо в JSX и наведи курсор — IDE покажет нужный тип.\n\nСвой компонент-обёртка над `<button>` должен принимать все родные атрибуты:\n\n```tsx\ntype ButtonProps = React.ComponentProps<\"button\"> & {\n  variant?: \"primary\" | \"ghost\";\n};\n\nfunction Button({ variant = \"primary\", className, ...rest }: ButtonProps) {\n  return <button className={`btn btn-${variant} ${className ?? \"\"}`} {...rest} />;\n}\n```\n\n`ComponentProps<\"button\">` включает `ref` (в React 19 это обычный проп); если `ref` не нужен — `ComponentPropsWithoutRef<\"button\">`.",
+        "tags": [
+          "react",
+          "события"
+        ]
+      },
+      {
+        "id": "ts-54",
+        "front": "Как типизировать `useState`, `useRef` и `useReducer`?",
+        "back": "**useState** — тип выводится из начального значения. Указывать явно нужно, когда начальное значение «уже» реального:\n\n```tsx\nconst [count, setCount] = useState(0);              // number — вывелся сам\nconst [user, setUser] = useState<User | null>(null); // иначе был бы тип null\nconst [tags, setTags] = useState<string[]>([]);      // иначе never[]\n```\n\n**useRef** — два сценария:\n\n```tsx\nconst inputRef = useRef<HTMLInputElement>(null); // ссылка на DOM, React заполнит сам\nconst timer = useRef<number | undefined>(undefined); // изменяемое значение\n```\n\n**useReducer** — тип выводится из редьюсера; экшены удобно описать discriminated union:\n\n```tsx\ntype Action = { type: \"add\"; text: string } | { type: \"remove\"; id: string };\n\nfunction reducer(state: Todo[], action: Action): Todo[] {\n  switch (action.type) {\n    case \"add\": return [...state, { id: crypto.randomUUID(), text: action.text }];\n    case \"remove\": return state.filter((t) => t.id !== action.id);\n  }\n}\n```",
+        "tags": [
+          "react",
+          "хуки"
+        ]
+      },
+      {
+        "id": "ts-55",
+        "front": "Как убрать `readonly` и `?` в mapped type?",
+        "back": "Модификаторы можно не только добавлять (`+`, по умолчанию), но и снимать минусом:\n\n```ts\ntype Mutable<T> = { -readonly [K in keyof T]: T[K] };\ntype Concrete<T> = { [K in keyof T]-?: T[K] }; // так устроен Required<T>\n\ntype Frozen = { readonly id: number; readonly name?: string };\ntype Editable = Mutable<Frozen>;   // { id: number; name?: string }\ntype Full = Concrete<Frozen>;      // { readonly id: number; readonly name: string }\n```\n\n`-?` убирает не только знак вопроса, но и `undefined` из типа поля, которое появилось из-за `?`.\n\nГде пригодится: получить изменяемую копию типа из `as const`-объекта, сделать тип «после валидации», где все поля уже заполнены, или написать свой `PartialBy` / `RequiredBy`.",
+        "tags": [
+          "mapped types",
+          "модификаторы"
+        ]
+      },
+      {
+        "id": "ts-56",
+        "front": "Почему `Object.keys(obj)` возвращает `string[]`, а не `(keyof T)[]`?",
+        "back": "Из-за структурной типизации у объекта в рантайме может быть **больше** ключей, чем описано в типе:\n\n```ts\ntype Point = { x: number; y: number };\nconst p3 = { x: 1, y: 2, z: 3 };\nconst p: Point = p3; // разрешено: лишние поля не мешают\n\nObject.keys(p); // [\"x\", \"y\", \"z\"] — \"z\" не входит в keyof Point\n```\n\nЕсли бы TS возвращал `(\"x\" | \"y\")[]`, код `p[key].toFixed()` мог бы упасть на `z`. Поэтому `string[]` — честный тип.\n\nКак быть, когда объект точно под твоим контролем (константа, `as const`):\n\n```ts\nconst keys = Object.keys(config) as (keyof typeof config)[];\n// или\nfor (const [key, value] of Object.entries(config)) { … }\n```\n\nУтверждение `as` — твоя ответственность: используй его только там, где лишних ключей быть не может.",
+        "tags": [
+          "object.keys",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "ts-57",
+        "front": "Как вывести параметры из строки маршрута `\"/users/:id/posts/:postId\"`?",
+        "back": "Рекурсивный условный тип с `infer` в шаблонной строке:\n\n```ts\ntype Params<Path extends string> =\n  Path extends `${string}:${infer Param}/${infer Rest}`\n    ? { [K in Param | keyof Params<Rest>]: string }\n    : Path extends `${string}:${infer Param}`\n      ? { [K in Param]: string }\n      : {};\n\ntype P = Params<\"/users/:id/posts/:postId\">;\n// { id: string; postId: string }\n\nfunction href<T extends string>(path: T, params: Params<T>) { … }\nhref(\"/users/:id\", { id: \"42\" });  // ок\nhref(\"/users/:id\", { uid: \"42\" }); // ошибка\n```\n\nКак работает: `infer Param` захватывает текст между `:` и `/`, `Rest` — остаток строки, который обрабатывается тем же типом рекурсивно.\n\nТак устроены типизированные роуты в tRPC, Hono, Express и TanStack Router. На собесе ценят не запоминание, а умение объяснить, что делает каждый `infer`.",
+        "tags": [
+          "template literals",
+          "infer"
+        ]
+      },
+      {
+        "id": "ts-58",
+        "front": "Зачем нужен `import type` и флаг `verbatimModuleSyntax`?",
+        "back": "`import type` говорит, что импорт нужен **только для типов**, и компилятор гарантированно удалит его из JS:\n\n```ts\nimport type { User } from \"./types\";\nimport { api, type Session } from \"./api\"; // смешанный вариант\n```\n\nПочему это важно:\n\n- сборщики (esbuild, SWC, Babel) компилируют каждый файл отдельно и не знают, тип это или значение. Импорт несуществующего в рантайме значения ломает сборку или оставляет лишний код;\n- импорт ради типов не тянет модуль с побочными эффектами в бандл;\n- явно видно, что зависимость только «типовая».\n\n`verbatimModuleSyntax: true` (TS 5.0) делает правило строгим: импорты без `type` остаются в JS **как есть**, а импорт, используемый только как тип, но без пометки `type`, — ошибка. Он заменил старые флаги `importsNotUsedAsValues` и `preserveValueImports`. Похожий по смыслу `isolatedModules` проверяет, что каждый файл можно скомпилировать отдельно.",
+        "tags": [
+          "модули",
+          "tsconfig"
+        ]
+      },
+      {
+        "id": "ts-59",
+        "front": "Как типизировать обёртку над `fetch` и почему `res.json() as T` небезопасно?",
+        "back": "Простой вариант — дженерик:\n\n```ts\nasync function getJson<T>(url: string): Promise<T> {\n  const res = await fetch(url);\n  if (!res.ok) throw new Error(`HTTP ${res.status}`);\n  return res.json() as Promise<T>;\n}\n\nconst user = await getJson<User>(\"/api/me\");\n```\n\nНо это **обещание**, а не проверка: `res.json()` возвращает `any`, и если сервер пришлёт другую структуру, TypeScript не узнает — ошибка вылезет дальше по коду.\n\nНадёжный вариант — проверять данные в рантайме схемой и выводить тип из неё:\n\n```ts\nconst UserSchema = z.object({ id: z.number(), name: z.string() });\ntype User = z.infer<typeof UserSchema>;\n\nasync function getUser() {\n  const res = await fetch(\"/api/me\");\n  return UserSchema.parse(await res.json()); // бросит, если формат не тот\n}\n```\n\nТип и проверка получаются из одного источника и не разъедутся.",
+        "tags": [
+          "fetch",
+          "безопасность типов"
+        ]
+      },
+      {
+        "id": "ts-60",
+        "front": "Почему `IsNever<never>` не даёт `true`, и как это исправить?",
+        "back": "```ts\ntype IsNever<T> = T extends never ? true : false;\ntype A = IsNever<never>; // never, а не true!\n```\n\nУсловный тип над «голым» параметром **дистрибутивен**: он применяется к каждому члену union по отдельности. `never` — это пустой union, членов нет, поэтому и результат пустой — `never`.\n\nИсправление — обернуть обе стороны в кортеж, чтобы отключить дистрибутивность:\n\n```ts\ntype IsNever<T> = [T] extends [never] ? true : false;\ntype B = IsNever<never>;  // true\ntype C = IsNever<string>; // false\n```\n\nТот же приём нужен, когда условный тип должен работать с union **целиком**: `[T] extends [string]` проверит весь `\"a\" | 1` разом, а не каждый член отдельно.",
+        "tags": [
+          "conditional types",
+          "never"
+        ]
       }
     ]
   },
@@ -677,7 +1019,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "react-02",
         "front": "Как сбросить состояние компонента при смене пропса?",
-        "back": "Сменить `key` — React размонтирует старый экземпляр и создаст новый с чистым состоянием:\n\n```tsx\n<ProfileForm key={userId} userId={userId} />\n```\n\nЭто лучше, чем `useEffect(() => setForm(initial), [userId])`: эффект сначала покажет устаревшие данные, а потом перерисует.",
+        "back": "Сменить `key` — React размонтирует старый экземпляр и создаст новый с чистым состоянием:\n\n```tsx\n<ProfileForm key={userId} userId={userId} />\n```\n\nЭто лучше, чем `useEffect(() => setForm(initial), [userId])`: эффект сначала отрисует форму со старыми данными, а потом перерисует её — лишний рендер и мигание. К тому же эффект надо не забыть обновить, когда в форме появится новое поле.\n\nЕсли сбросить нужно только часть состояния, можно сравнивать пропс прямо во время рендера, но чаще всего `key` — самое простое и надёжное решение. Минус: сбрасываются и все дочерние компоненты, а DOM пересоздаётся.",
         "tags": [
           "key",
           "state"
@@ -824,7 +1166,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "react-19",
         "front": "Зачем нужны порталы?",
-        "back": "`createPortal(children, domNode)` рендерит в другой DOM-узел (обычно `body`), но в дереве React элемент остаётся на месте: работает контекст, а события **всплывают по React-дереву**.\n\nНужны модалкам, тултипам, тостам — чтобы вырваться из `overflow: hidden` и `z-index` родителя.",
+        "back": "`createPortal(children, domNode)` рендерит элементы в другой DOM-узел (обычно `document.body`), но в **дереве React** они остаются на своём месте:\n\n- работает контекст родителя;\n- события **всплывают по React-дереву**, а не по DOM: клик в модалке дойдёт до `onClick` компонента, который её отрендерил.\n\n```tsx\nfunction Modal({ children }: { children: React.ReactNode }) {\n  return createPortal(<div className=\"modal\">{children}</div>, document.body);\n}\n```\n\nНужны модалкам, тултипам, выпадающим меню и тостам — чтобы вырваться из `overflow: hidden` и контекста наложения (`z-index`) родителя. В SSR портал можно рендерить только на клиенте: на сервере нет `document`.",
         "tags": [
           "dom",
           "portals"
@@ -833,7 +1175,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "react-20",
         "front": "Почему в StrictMode эффекты срабатывают дважды?",
-        "back": "Только в dev React монтирует, размонтирует и снова монтирует компонент, а рендер вызывает дважды. Так он выявляет нечистые компоненты и эффекты без cleanup.\n\nЕсли двойной вызов что-то ломает (два запроса, двойная подписка) — значит, нет правильной очистки. В продакшене этого нет.",
+        "back": "Только в dev React специально проверяет компоненты:\n\n- вызывает рендер дважды — чтобы поймать нечистые компоненты (мутации, случайные значения);\n- монтирует → размонтирует → снова монтирует — чтобы проверить, что у эффектов есть правильная очистка.\n\nЕсли двойной вызов что-то ломает — значит, нет cleanup:\n\n```tsx\nuseEffect(() => {\n  const ws = new WebSocket(url);\n  return () => ws.close(); // без этого будет два соединения\n}, [url]);\n```\n\nДля запросов — флаг `ignore` или `AbortController` в cleanup. В продакшене двойных вызовов нет, но та же ситуация возникает при быстрой смене пропсов, поэтому чинить нужно эффект, а не отключать StrictMode.",
         "tags": [
           "strict mode",
           "эффекты"
@@ -914,7 +1256,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "react-29",
         "front": "Что такое кастомный хук? Делят ли компоненты его состояние?",
-        "back": "Функция с именем `use…`, которая вызывает другие хуки. Это способ переиспользовать **логику**, а не состояние: каждый вызов хука получает своё независимое состояние.\n\nЧтобы делить данные, нужно поднять state выше, использовать контекст или внешний стор.",
+        "back": "Функция с именем `use…`, которая вызывает другие хуки. Это способ переиспользовать **логику**, а не состояние: каждый вызов хука получает своё независимое состояние.\n\n```tsx\nfunction useToggle(initial = false) {\n  const [on, setOn] = useState(initial);\n  const toggle = useCallback(() => setOn((v) => !v), []);\n  return [on, toggle] as const;\n}\n\nconst [menuOpen, toggleMenu] = useToggle();  // своё состояние\nconst [modalOpen, toggleModal] = useToggle(); // и здесь своё\n```\n\nПрефикс `use` нужен линтеру: по нему он проверяет правила хуков. Если функция не вызывает хуки внутри, это обычная утилита, и называть её `use…` не нужно.\n\nЧтобы делить данные между компонентами, нужно поднять state выше, использовать контекст или внешний стор.",
         "tags": [
           "хуки"
         ]
@@ -1061,6 +1403,150 @@ export const SEED: SeedDeck[] = [
           "списки",
           "key"
         ]
+      },
+      {
+        "id": "react-46",
+        "front": "Для чего нужен `useImperativeHandle`?",
+        "back": "Чтобы через `ref` отдать родителю не весь DOM-узел, а **ограниченный набор методов**:\n\n```tsx\ntype PlayerHandle = { play(): void; pause(): void };\n\nfunction VideoPlayer({ ref, src }: { ref?: React.Ref<PlayerHandle>; src: string }) {\n  const videoRef = useRef<HTMLVideoElement>(null);\n  useImperativeHandle(ref, () => ({\n    play: () => videoRef.current?.play(),\n    pause: () => videoRef.current?.pause(),\n  }), []);\n  return <video ref={videoRef} src={src} />;\n}\n\n// родитель\nconst player = useRef<PlayerHandle>(null);\n<VideoPlayer ref={player} src=\"/intro.mp4\" />\n<button onClick={() => player.current?.play()}>Play</button>\n```\n\nРодитель не сможет случайно поменять стили или удалить узел — у него есть только `play` и `pause`.\n\nИспользовать редко: фокус, прокрутка, запуск анимации, управление медиа. Всё, что можно выразить пропсами (`isOpen`, `value`), лучше делать пропсами — это декларативно.",
+        "tags": [
+          "refs",
+          "хуки"
+        ]
+      },
+      {
+        "id": "react-47",
+        "front": "Что такое «поднятие состояния»? Как передать данные от ребёнка родителю?",
+        "back": "Если двум компонентам нужно одно и то же состояние, его переносят в **ближайшего общего родителя** и передают вниз пропсами. Данные идут сверху вниз, а изменения — снизу вверх через колбэки:\n\n```tsx\nfunction Filters() {\n  const [query, setQuery] = useState(\"\");\n  return (\n    <>\n      <SearchInput value={query} onChange={setQuery} />\n      <Results query={query} />\n    </>\n  );\n}\n\nfunction SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {\n  return <input value={value} onChange={(e) => onChange(e.target.value)} />;\n}\n```\n\nРебёнок не знает, где живёт состояние, — он просто вызывает `onChange`. Так у данных один источник правды, и компоненты не рассинхронизируются.\n\nМинус: если общий родитель далеко, приходится прокидывать пропсы через много уровней. Тогда помогают композиция (`children`), контекст или стор.",
+        "tags": [
+          "state",
+          "архитектура"
+        ]
+      },
+      {
+        "id": "react-48",
+        "front": "Что такое синтетические события в React?",
+        "back": "React оборачивает нативные события в свой объект `SyntheticEvent` с одинаковым API во всех браузерах. Оригинал доступен через `e.nativeEvent`.\n\nОсобенности, о которых спрашивают:\n\n- **Делегирование.** React не вешает обработчик на каждый элемент: с версии 17 он слушает события на корневом контейнере приложения (до этого — на `document`).\n- **Пулинга больше нет.** До React 17 объект события переиспользовался, и после `await` поля были пустыми. Теперь его можно спокойно использовать асинхронно.\n- **`onChange`** у инпутов срабатывает на **каждый ввод символа** (как нативный `input`), а не при потере фокуса, как нативный `change`.\n- Есть версии для фазы перехвата: `onClickCapture`.\n- `onScroll` не всплывает (с React 17), как и в браузере.\n\n`e.stopPropagation()` останавливает всплытие по React-дереву, включая порталы.",
+        "tags": [
+          "события",
+          "dom"
+        ]
+      },
+      {
+        "id": "react-49",
+        "front": "Как найти причину лишних ререндеров?",
+        "back": "1. **React DevTools → Profiler.** Запиши взаимодействие и посмотри, какие компоненты рендерились и сколько это заняло. В настройках включи «Record why each component rendered» — Profiler покажет причину: изменился проп, state, контекст или ререндер родителя.\n2. **Highlight updates** в настройках DevTools подсвечивает компоненты при каждом рендере — сразу видно, что «мигает» лишнее.\n3. **Компонент `<Profiler>`** в коде для замеров:\n\n```tsx\n<Profiler id=\"list\" onRender={(id, phase, duration) => console.log(id, phase, duration)}>\n  <List />\n</Profiler>\n```\n\nЧастые причины: новый объект или функция в пропсах на каждый рендер, широкий контекст, который меняется слишком часто, состояние, поднятое слишком высоко.\n\nВажно: сам по себе ререндер не проблема. Оптимизировать стоит то, что реально тормозит по замерам, а не всё подряд.",
+        "tags": [
+          "производительность",
+          "отладка"
+        ]
+      },
+      {
+        "id": "react-50",
+        "front": "Почему `items.push(x); setItems(items)` не вызывает ререндер?",
+        "back": "React сравнивает новое состояние со старым через `Object.is`. `push` меняет **тот же** массив, ссылка не меняется — React решает, что ничего не изменилось, и пропускает рендер.\n\n```tsx\n// неправильно\nitems.push(newItem);\nsetItems(items);\n\n// правильно — новый массив\nsetItems([...items, newItem]);\nsetItems((prev) => [...prev, newItem]); // если опираемся на прошлое значение\n```\n\nШпаргалка без мутаций:\n\n- добавить — `[...arr, x]`;\n- удалить — `arr.filter((i) => i.id !== id)`;\n- изменить — `arr.map((i) => (i.id === id ? { ...i, done: true } : i))`;\n- отсортировать — `arr.toSorted(compare)` (или `[...arr].sort()`);\n- объект — `{ ...obj, field: value }`.\n\nДаже если мутация «сработала» из-за другого ререндера, она ломает `memo`, эффекты и StrictMode. Для глубоких структур удобен Immer (`useImmer`).",
+        "tags": [
+          "state",
+          "иммутабельность"
+        ]
+      },
+      {
+        "id": "react-51",
+        "front": "Почему большие формы на `useState` тормозят и что делает react-hook-form?",
+        "back": "Управляемый инпут хранит значение в state: каждый введённый символ — это `setState` и ререндер всей формы. На форме из 30 полей с валидацией это заметно.\n\n**react-hook-form** работает с **неуправляемыми** инпутами: значения живут в DOM, библиотека читает их через `ref` и ререндерит только то, что нужно (например, поле с ошибкой).\n\n```tsx\nconst schema = z.object({ email: z.email(), age: z.coerce.number().min(18) });\n\nfunction SignupForm() {\n  const { register, handleSubmit, formState: { errors } } = useForm({\n    resolver: zodResolver(schema),\n  });\n  return (\n    <form onSubmit={handleSubmit((data) => save(data))}>\n      <input {...register(\"email\")} />\n      {errors.email && <p>{errors.email.message}</p>}\n      <input {...register(\"age\")} />\n      <button>Отправить</button>\n    </form>\n  );\n}\n```\n\nПлюсы: меньше ререндеров, валидация через Zod, типы данных выводятся из схемы. Для формы из двух полей хватит обычного `useState` или Actions React 19.",
+        "tags": [
+          "формы",
+          "производительность"
+        ]
+      },
+      {
+        "id": "react-52",
+        "front": "Что такое компонент `<Activity>`?",
+        "back": "Появился в React 19.2. Позволяет **скрыть** часть интерфейса, не размонтируя её:\n\n```tsx\nimport { Activity } from \"react\";\n\n<Activity mode={tab === \"chat\" ? \"visible\" : \"hidden\"}>\n  <Chat />\n</Activity>\n```\n\nКогда `mode=\"hidden\"`:\n\n- компонент скрыт (`display: none`), но его **state и DOM сохраняются** — набранный текст и прокрутка не потеряются;\n- эффекты очищаются, как при размонтировании (подписки и таймеры останавливаются), и запускаются снова при показе;\n- обновления внутри обрабатываются с низким приоритетом и не мешают видимой части.\n\nРаньше выбор был плохой: `{visible && <Chat />}` теряет состояние, а CSS-скрытие оставляет работать эффекты. Сценарии: вкладки, боковые панели, предварительный рендер экрана, на который пользователь скорее всего перейдёт.",
+        "tags": [
+          "react 19.2",
+          "activity"
+        ]
+      },
+      {
+        "id": "react-53",
+        "front": "Что ещё нового в React 19, кроме Actions и `use`?",
+        "back": "- **`ref` — обычный проп** у функциональных компонентов, `forwardRef` больше не нужен.\n- **Очистка у ref-колбэка**: колбэк может вернуть функцию, которая вызовется при отключении узла.\n- **`<Context>` как провайдер**: `<ThemeContext value=\"dark\">` вместо `<ThemeContext.Provider>`.\n- **Метаданные документа**: `<title>`, `<meta>` и `<link>` можно рендерить в любом компоненте — React поднимет их в `<head>`.\n- **Стили и скрипты**: `<link rel=\"stylesheet\" precedence=\"default\">` загружается с учётом приоритета, а Suspense дождётся стилей перед показом.\n- **Функции предзагрузки**: `preload`, `preinit`, `prefetchDNS` из `react-dom`.\n- **Понятнее ошибки гидратации**: один отчёт с разницей вместо множества предупреждений.\n\n```tsx\n<div ref={(node) => {\n  const observer = new ResizeObserver(onResize);\n  if (node) observer.observe(node);\n  return () => observer.disconnect();\n}} />\n```",
+        "tags": [
+          "react 19"
+        ]
+      },
+      {
+        "id": "react-54",
+        "front": "Почему состояние не сбрасывается, если в тернарнике рендерить один и тот же компонент?",
+        "back": "```tsx\n{isAnna ? <Counter person=\"Аня\" /> : <Counter person=\"Боб\" />}\n```\n\nПереключаем `isAnna` — а счётчик Ани переходит к Бобу. React привязывает состояние к **позиции в дереве и типу компонента**, а не к пропсам. Здесь в одной позиции один и тот же тип `Counter`, значит, это «тот же» компонент — React просто обновляет пропсы.\n\nКак сделать состояния раздельными:\n\n```tsx\n// разные ключи — разные экземпляры\n{isAnna ? <Counter key=\"anna\" person=\"Аня\" /> : <Counter key=\"bob\" person=\"Боб\" />}\n\n// или разные позиции\n{isAnna && <Counter person=\"Аня\" />}\n{!isAnna && <Counter person=\"Боб\" />}\n```\n\nОбратный случай: если обернуть компонент в другой тег (`<div>` ↔ `<section>`) на том же месте, состояние всего поддерева сбросится.",
+        "tags": [
+          "state",
+          "reconciliation",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "react-55",
+        "front": "Можно ли объявлять компонент внутри другого компонента?",
+        "back": "Нет. На каждом рендере родителя создаётся **новая функция** — для React это новый тип компонента:\n\n```tsx\nfunction Form() {\n  const [text, setText] = useState(\"\");\n  function Field() { // новый тип при каждом рендере\n    return <input value={text} onChange={(e) => setText(e.target.value)} />;\n  }\n  return <Field />;\n}\n```\n\nКаждый символ → ререндер `Form` → новый `Field` → React размонтирует старый инпут и создаёт новый. Итог: **фокус теряется после каждой буквы**, состояние внутри `Field` сбрасывается, лишняя работа с DOM.\n\nПравильно — объявлять компоненты на верхнем уровне модуля и передавать данные пропсами:\n\n```tsx\nfunction Field({ value, onChange }: FieldProps) {\n  return <input value={value} onChange={(e) => onChange(e.target.value)} />;\n}\n```\n\nВызывать функцию, которая возвращает JSX (`{renderField()}`), можно — это не компонент, а часть разметки родителя.",
+        "tags": [
+          "компоненты",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "react-56",
+        "front": "Когда в React возможен XSS, если он экранирует текст?",
+        "back": "React экранирует всё, что вставлено в JSX как текст, — `<b>{comment}</b>` безопасен. Опасны места, где данные становятся **кодом или разметкой**:\n\n- `dangerouslySetInnerHTML={{ __html: html }}` — вставляет HTML как есть. Странное имя выбрано специально, чтобы такой код бросался в глаза на ревью;\n- `href` и `src` из пользовательских данных: `javascript:alert(1)` в ссылке;\n- прямая работа с DOM: `ref.current.innerHTML = …`;\n- данные в `<script>` при SSR (например, `JSON.stringify` состояния без экранирования `</script>`).\n\n```tsx\nimport DOMPurify from \"dompurify\";\n\n<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />\n\nconst safeHref = /^https?:\\/\\//.test(url) ? url : \"#\";\n```\n\nДля Markdown используют `react-markdown` без плагина сырого HTML — он строит React-элементы, а не HTML-строку. Так устроено и это приложение.",
+        "tags": [
+          "безопасность",
+          "xss"
+        ]
+      },
+      {
+        "id": "react-57",
+        "front": "Когда вызывается функция очистки эффекта?",
+        "back": "1. **Перед повторным запуском эффекта**, когда изменились зависимости. Очистка получает значения **прошлого** рендера, а потом эффект запускается с новыми.\n2. **При размонтировании** компонента.\n3. В dev со StrictMode — ещё один лишний цикл «эффект → очистка → эффект» при монтировании.\n\n```tsx\nuseEffect(() => {\n  const conn = connect(roomId);\n  return () => conn.disconnect(); // отключиться от СТАРОЙ комнаты\n}, [roomId]);\n```\n\nСмена `roomId` с `\"a\"` на `\"b\"`: рендер с `\"b\"` → очистка отключается от `\"a\"` → эффект подключается к `\"b\"`.\n\nЧто обычно чистят: подписки, `addEventListener`, таймеры, `AbortController` для запросов, сторонние виджеты. Если эффект что-то «включает», очистка должна это «выключить» — тогда компонент можно безопасно смонтировать хоть дважды.",
+        "tags": [
+          "эффекты",
+          "cleanup"
+        ]
+      },
+      {
+        "id": "react-58",
+        "front": "Почему функцию эффекта нельзя сделать `async`?",
+        "back": "`useEffect` ждёт, что функция вернёт **ничего или функцию очистки**. `async`-функция всегда возвращает промис — React не сможет вызвать очистку, и TypeScript выдаст ошибку.\n\nПравильно — объявить async-функцию внутри и не забыть про отмену:\n\n```tsx\nuseEffect(() => {\n  const controller = new AbortController();\n\n  async function load() {\n    try {\n      const res = await fetch(`/api/users/${id}`, { signal: controller.signal });\n      setUser(await res.json());\n    } catch (e) {\n      if ((e as Error).name !== \"AbortError\") setError(e as Error);\n    }\n  }\n\n  load();\n  return () => controller.abort();\n}, [id]);\n```\n\nОтмена защищает от гонки: ответ на старый `id` не перезапишет данные нового. На практике загрузку данных лучше отдать TanStack Query, SWR или серверным компонентам — там это уже решено.",
+        "tags": [
+          "эффекты",
+          "async"
+        ]
+      },
+      {
+        "id": "react-59",
+        "front": "Что произойдёт, если вызвать `setState` с тем же значением?",
+        "back": "React сравнит его с текущим через `Object.is`. Если значения равны, он **не будет** перерисовывать детей и запускать эффекты (bail out).\n\n```tsx\nconst [count, setCount] = useState(0);\nsetCount(0); // ничего не произойдёт\n\nconst [user, setUser] = useState({ name: \"Аня\" });\nsetUser({ name: \"Аня\" }); // ререндер: новый объект — новая ссылка\n```\n\nНюанс: иногда React всё же вызывает функцию компонента ещё раз, прежде чем понять, что результат не изменился, но дочерние компоненты при этом не трогает. Поэтому компоненты должны быть чистыми.\n\nПрактический вывод: для объектов и массивов не создавай новый объект, если данные не поменялись. Например, `setFilters((f) => (f.page === 1 ? f : { ...f, page: 1 }))` — вернуть тот же `f`, чтобы избежать лишнего рендера.",
+        "tags": [
+          "state",
+          "производительность"
+        ]
+      },
+      {
+        "id": "react-60",
+        "front": "Как сделать форму на `useActionState` с ошибками валидации?",
+        "back": "```tsx\n\"use client\";\nimport { useActionState } from \"react\";\n\ntype State = { error?: string; email?: string; ok?: boolean };\n\nasync function subscribe(prev: State, formData: FormData): Promise<State> {\n  const email = String(formData.get(\"email\") ?? \"\");\n  if (!email.includes(\"@\")) return { error: \"Некорректный email\", email };\n  await api.subscribe(email);\n  return { ok: true };\n}\n\nexport function SubscribeForm() {\n  const [state, formAction, isPending] = useActionState(subscribe, {});\n  return (\n    <form action={formAction}>\n      <input name=\"email\" defaultValue={state.email} />\n      <button disabled={isPending}>{isPending ? \"Отправляю…\" : \"Подписаться\"}</button>\n      {state.error && <p role=\"alert\">{state.error}</p>}\n      {state.ok && <p>Готово!</p>}\n    </form>\n  );\n}\n```\n\n- Action получает **предыдущее состояние** и `FormData`, а возвращает новое состояние.\n- `isPending` — пока action выполняется; отдельный `useState` для загрузки не нужен.\n- Ловушка: после action React **сбрасывает** неуправляемые поля формы. Чтобы при ошибке пользователь не терял ввод, верни значения в state и подставь их в `defaultValue`.\n- В Next.js `subscribe` может быть Server Action — тогда форма работает даже до загрузки JS.",
+        "tags": [
+          "react 19",
+          "формы"
+        ]
+      },
+      {
+        "id": "react-61",
+        "front": "Что делает `flushSync` и когда он нужен?",
+        "back": "Обычно React группирует обновления и применяет их к DOM чуть позже. `flushSync` заставляет выполнить обновление **синхронно**, прямо сейчас:\n\n```tsx\nimport { flushSync } from \"react-dom\";\n\nfunction addMessage(text: string) {\n  flushSync(() => {\n    setMessages((m) => [...m, text]);\n  });\n  // DOM уже обновлён — новое сообщение есть в списке\n  listRef.current?.lastElementChild?.scrollIntoView({ behavior: \"smooth\" });\n}\n```\n\nБез `flushSync` в момент вызова `scrollIntoView` нового элемента ещё нет в DOM, и прокрутка уедет к предпоследнему.\n\nКогда нужен: прокрутка или фокус на только что добавленном элементе, интеграция со сторонним кодом, которому нужен актуальный DOM, и `beforeprint`.\n\nЭто дорогой инструмент: он отключает батчинг и может ухудшить производительность. Сначала проверь, не решается ли задача эффектом или ref-колбэком.",
+        "tags": [
+          "рендер",
+          "dom"
+        ]
       }
     ]
   },
@@ -1155,7 +1641,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "state-10",
         "front": "Что такое middleware в Redux?",
-        "back": "Прослойка между `dispatch` и редьюсером: `store => next => action => { … }`.\n\nМожет логировать, менять, задерживать или отменять экшены и выполнять побочные эффекты. Примеры: thunk, логгер, аналитика, `listenerMiddleware` в RTK, RTK Query.",
+        "back": "Прослойка между `dispatch` и редьюсером. Экшен проходит через цепочку middleware, и каждая может его пропустить, изменить, задержать или остановить:\n\n```ts\nconst logger: Middleware = (store) => (next) => (action) => {\n  console.log(\"до\", store.getState());\n  const result = next(action); // передать дальше по цепочке\n  console.log(\"после\", store.getState());\n  return result;\n};\n```\n\nИменно здесь живут побочные эффекты, ведь редьюсеры обязаны быть чистыми. Примеры: thunk (разрешает диспатчить функции), логгер, аналитика, `listenerMiddleware` в RTK, RTK Query.\n\n`configureStore` уже подключает thunk и dev-проверки; свои добавляют так: `middleware: (getDefault) => getDefault().concat(logger)`.",
         "tags": [
           "redux",
           "middleware"
@@ -1209,7 +1695,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "state-16",
         "front": "Как читать и менять Zustand-стор вне компонентов?",
-        "back": "Хук — это ещё и объект стора с API:\n\n```ts\nuseBears.getState().add();        // вызвать экшен\nuseBears.setState({ bears: 10 }); // записать\n\nconst unsubscribe = useBears.subscribe((s) => console.log(s.bears));\n```\n\nУдобно в утилитах, тестах, обработчиках WebSocket.",
+        "back": "Хук, который возвращает `create`, — это ещё и объект стора с API:\n\n```ts\nuseBears.getState().add();        // прочитать состояние или вызвать экшен\nuseBears.setState({ bears: 10 }); // записать (поверхностное слияние)\n\nconst unsubscribe = useBears.subscribe((state, prev) => {\n  if (state.bears !== prev.bears) console.log(state.bears);\n});\n```\n\nУдобно в утилитах, тестах, обработчиках WebSocket, интерцепторах axios (например, достать токен).\n\nЛовушка: `getState()` в теле компонента не подписывает его на изменения — компонент не перерисуется. В компонентах читай через хук с селектором, а `getState()` используй в обработчиках событий и вне React.",
         "tags": [
           "zustand"
         ]
@@ -1234,7 +1720,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "state-19",
         "front": "Как Redux и Zustand понимают, что состояние изменилось?",
-        "back": "Сравнением **по ссылке** (`Object.is`) — это дёшево. Поэтому изменение должно создавать новые объекты на пути к изменённому полю, а неизменённые части — сохранять старые ссылки, чтобы их селекторы не срабатывали.\n\nМутация «на месте» ссылку не меняет — подписчики не узнают об изменении.",
+        "back": "Сравнением **по ссылке** (`Object.is`) — это дёшево, не нужно обходить объект целиком. Поэтому изменение должно создавать новые объекты на всём пути к изменённому полю, а неизменённые части — сохранять старые ссылки:\n\n```ts\n// новый state, новый user, но settings — та же ссылка\nset((s) => ({ user: { ...s.user, name } }));\n```\n\nТогда селектор `s => s.settings` вернёт прежнюю ссылку, и подписанные на него компоненты не перерисуются.\n\nМутация «на месте» (`s.user.name = name`) ссылку не меняет — подписчики не узнают об изменении, и UI не обновится. Immer внутри `createSlice` позволяет писать «мутирующий» код, но под капотом создаёт новые объекты.",
         "tags": [
           "иммутабельность"
         ]
@@ -1318,6 +1804,171 @@ export const SEED: SeedDeck[] = [
           "атомы",
           "jotai"
         ]
+      },
+      {
+        "id": "state-29",
+        "front": "Что `configureStore` настраивает по умолчанию?",
+        "back": "По сравнению со старым `createStore` он сразу включает разумные настройки:\n\n- **объединяет редьюсеры**: можно передать объект `{ todos, user }` вместо ручного `combineReducers`;\n- **подключает middleware**: `thunk` для асинхронной логики;\n- **в dev-режиме добавляет проверки**: ругается, если state мутируют вне Immer или кладут в него несериализуемые значения (`Date`, `Map`, функции);\n- **включает Redux DevTools**.\n\n```ts\nexport const store = configureStore({\n  reducer: { todos: todosReducer, user: userReducer },\n  middleware: (getDefault) => getDefault().concat(logger),\n});\n\nexport type RootState = ReturnType<typeof store.getState>;\nexport type AppDispatch = typeof store.dispatch;\n```\n\nВажно: в RTK 2 `middleware` принимает только функцию, а свои middleware добавляют через `getDefault().concat(...)`. Если вернуть только свой массив (`() => [logger]`), стандартные — thunk и проверки — пропадут.",
+        "tags": [
+          "redux toolkit",
+          "store"
+        ]
+      },
+      {
+        "id": "state-30",
+        "front": "Как обработать загрузку и ошибку `createAsyncThunk` в слайсе?",
+        "back": "Thunk сам диспатчит три экшена, а слайс ловит их в `extraReducers`:\n\n```ts\nexport const fetchUser = createAsyncThunk(\n  \"user/fetch\",\n  async (id: string, { rejectWithValue }) => {\n    const res = await fetch(`/api/users/${id}`);\n    if (!res.ok) return rejectWithValue(`Ошибка ${res.status}`);\n    return (await res.json()) as User;\n  },\n);\n\nconst userSlice = createSlice({\n  name: \"user\",\n  initialState: { data: null as User | null, status: \"idle\", error: null as string | null },\n  reducers: {},\n  extraReducers: (builder) => {\n    builder\n      .addCase(fetchUser.pending, (state) => { state.status = \"loading\"; state.error = null; })\n      .addCase(fetchUser.fulfilled, (state, action) => { state.status = \"succeeded\"; state.data = action.payload; })\n      .addCase(fetchUser.rejected, (state, action) => {\n        state.status = \"failed\";\n        state.error = (action.payload as string) ?? action.error.message ?? \"Ошибка\";\n      });\n  },\n});\n```\n\n`rejectWithValue` кладёт свою ошибку в `action.payload`; обычное исключение попадает в `action.error`. Статус лучше хранить строкой (`\"idle\" | \"loading\" | …`), а не набором флагов `isLoading` + `isError`. В RTK 2 `extraReducers` принимает только функцию с `builder`.",
+        "tags": [
+          "redux toolkit",
+          "async"
+        ]
+      },
+      {
+        "id": "state-31",
+        "front": "Что такое `listenerMiddleware` и когда он нужен?",
+        "back": "Способ реагировать на экшены побочными эффектами — замена redux-saga и redux-observable для большинства задач:\n\n```ts\nconst listener = createListenerMiddleware();\n\nlistener.startListening({\n  actionCreator: cartItemAdded,\n  effect: async (action, api) => {\n    api.cancelActiveListeners(); // как debounce: отменить прошлый запуск\n    await api.delay(500);\n    await saveCart(api.getState().cart);\n  },\n});\n\nconst store = configureStore({\n  reducer,\n  middleware: (getDefault) => getDefault().prepend(listener.middleware),\n});\n```\n\nЧем отличается от thunk: thunk вызывают явно (`dispatch(fetchX())`), а слушатель срабатывает **сам**, когда произошло событие. Это удобно для реакций «когда X — сделать Y»: автосохранение, аналитика, синхронизация с `localStorage`, показ тоста после успешного запроса.\n\nЕсть `api.condition(...)` (подождать нужного состояния) и `api.fork(...)` (дочерняя задача) — этого хватает для сложных сценариев без генераторов saga.",
+        "tags": [
+          "redux toolkit",
+          "side effects"
+        ]
+      },
+      {
+        "id": "state-32",
+        "front": "Почему `useSelector((s) => ({ a: s.a, b: s.b }))` вызывает лишние ререндеры?",
+        "back": "`useSelector` вызывает селектор после **каждого** экшена в сторе и сравнивает результат с прошлым через `===`. Селектор, который возвращает новый объект, всегда даёт новую ссылку — компонент перерисовывается при любом изменении в сторе, даже чужом.\n\nРешения:\n\n```ts\n// 1. Несколько селекторов — по одному на значение\nconst a = useSelector((s: RootState) => s.a);\nconst b = useSelector((s: RootState) => s.b);\n\n// 2. Поверхностное сравнение\nimport { shallowEqual } from \"react-redux\";\nconst { a, b } = useSelector((s: RootState) => ({ a: s.a, b: s.b }), shallowEqual);\n\n// 3. Мемоизированный селектор для вычислений\nconst selectDone = createSelector([(s: RootState) => s.todos], (todos) => todos.filter((t) => t.done));\n```\n\n`filter`, `map` и spread внутри селектора — тот же случай. В dev-режиме React-Redux предупреждает, если селектор возвращает разные ссылки для одного и того же состояния. В Zustand аналог — `useShallow`.",
+        "tags": [
+          "redux",
+          "селекторы",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "state-33",
+        "front": "Что такое `prepare` в `createSlice` и зачем он нужен?",
+        "back": "Функция, которая формирует `payload` **до** того, как экшен попадёт в редьюсер. Туда выносят генерацию id, даты и преобразование аргументов:\n\n```ts\nconst todosSlice = createSlice({\n  name: \"todos\",\n  initialState: [] as Todo[],\n  reducers: {\n    todoAdded: {\n      reducer(state, action: PayloadAction<Todo>) {\n        state.push(action.payload);\n      },\n      prepare(text: string) {\n        return { payload: { id: nanoid(), text, createdAt: new Date().toISOString() } };\n      },\n    },\n  },\n});\n\ndispatch(todoAdded(\"Купить молоко\"));\n```\n\nПочему не генерировать id в самом редьюсере: редьюсер должен быть **чистым и детерминированным**. Тот же экшен при повторном проигрывании (time travel в DevTools, тесты) обязан давать тот же результат, а `nanoid()` и `Date.now()` каждый раз разные.\n\nДата хранится строкой, потому что `Date` — несериализуемое значение.",
+        "tags": [
+          "redux toolkit",
+          "actions"
+        ]
+      },
+      {
+        "id": "state-34",
+        "front": "Что нельзя делать в редьюсере?",
+        "back": "Редьюсер — чистая функция `(state, action) => newState`. Поэтому в нём **нельзя**:\n\n- делать запросы, писать в `localStorage`, менять URL, показывать тосты — всё это побочные эффекты (их место в thunk, listener или компоненте);\n- вызывать `dispatch` — другой экшен должен быть результатом логики снаружи;\n- использовать случайные значения и текущее время (`Math.random()`, `Date.now()`) — выносим в `prepare` или в аргументы экшена;\n- мутировать state вне Immer (в обычном Redux) и мутировать `action.payload`;\n- быть асинхронным.\n\nМожно и нужно: вычислять новое состояние только из `state` и `action`.\n\nЗачем такие строгости: предсказуемость (одинаковый вход → одинаковый результат), простые тесты без моков, time travel в DevTools и уверенность, что повтор экшена ничего не сломает.",
+        "tags": [
+          "redux",
+          "редьюсеры"
+        ]
+      },
+      {
+        "id": "state-35",
+        "front": "Может ли слайс реагировать на экшены другого слайса?",
+        "back": "Да, через `extraReducers`. Так один экшен меняет несколько частей состояния, и не нужно диспатчить два экшена подряд:\n\n```ts\n// authSlice\nexport const loggedOut = createAction(\"auth/loggedOut\");\n\n// cartSlice\nconst cartSlice = createSlice({\n  name: \"cart\",\n  initialState: [] as CartItem[],\n  reducers: { /* ... */ },\n  extraReducers: (builder) => {\n    builder.addCase(loggedOut, () => []); // при выходе очистить корзину\n  },\n});\n```\n\n`reducers` создаёт **свои** экшены слайса, `extraReducers` — только слушает чужие (или экшены `createAsyncThunk`).\n\nЭто основной принцип Redux: экшен описывает **событие** («пользователь вышел»), а не команду («очистить корзину»). Какие слайсы и как на него реагируют, решают сами слайсы. Благодаря этому одно событие легко подхватить в новом месте, не меняя код отправителя.",
+        "tags": [
+          "redux toolkit",
+          "слайсы"
+        ]
+      },
+      {
+        "id": "state-36",
+        "front": "Где хранить экшены в Zustand: внутри стора или отдельно?",
+        "back": "Обычно экшены кладут в стор рядом с данными:\n\n```ts\nconst useCart = create<CartState>()((set) => ({\n  items: [],\n  add: (item) => set((s) => ({ items: [...s.items, item] })),\n}));\n\nconst add = useCart((s) => s.add);\n```\n\nДокументация Zustand предлагает и альтернативу — экшены как обычные функции модуля:\n\n```ts\nexport const useCart = create(() => ({ items: [] as Item[] }));\n\nexport const addItem = (item: Item) =>\n  useCart.setState((s) => ({ items: [...s.items, item] }));\n```\n\nПлюсы второго варианта: экшен вызывается откуда угодно без хука и селектора, его проще тестировать и разбивать по файлам, в сторе остаются только данные (удобно для `persist` и сброса).\n\nМинус — нет одного места, где видно всё API стора. Оба подхода нормальные, главное — единообразие в проекте.",
+        "tags": [
+          "zustand",
+          "архитектура"
+        ]
+      },
+      {
+        "id": "state-37",
+        "front": "Как обновить сохранённый Zustand-стор, если поменялась структура данных?",
+        "back": "У `persist` есть номер версии и функция миграции. Если версия в хранилище меньше текущей, перед гидратацией вызовется `migrate`:\n\n```ts\nconst useSettings = create<Settings>()(\n  persist(\n    (set) => ({ theme: \"light\", setTheme: (theme) => set({ theme }) }),\n    {\n      name: \"settings\",\n      version: 2,\n      migrate: (persisted, version) => {\n        if (version < 2) {\n          const old = persisted as { dark: boolean };\n          return { theme: old.dark ? \"dark\" : \"light\" };\n        }\n        return persisted as Settings;\n      },\n      partialize: (s) => ({ theme: s.theme }), // сохранять только данные\n    },\n  ),\n);\n```\n\nБез миграции у пользователей со старыми данными приложение может упасть на поле, которого раньше не было.\n\nЕщё полезное: `partialize` — не сохранять функции и временные поля; `onRehydrateStorage` — узнать, когда данные загрузились; `skipHydration` — запустить гидратацию вручную (например, после монтирования в Next.js).",
+        "tags": [
+          "zustand",
+          "persist",
+          "миграции"
+        ]
+      },
+      {
+        "id": "state-38",
+        "front": "Как сбросить Zustand-стор (при выходе из аккаунта или между тестами)?",
+        "back": "Вынести начальное состояние в константу и добавить экшен `reset`:\n\n```ts\nconst initialState = { items: [] as Item[], coupon: null as string | null };\n\nconst useCart = create<typeof initialState & Actions>()((set) => ({\n  ...initialState,\n  add: (item) => set((s) => ({ items: [...s.items, item] })),\n  reset: () => set(initialState),\n}));\n```\n\n`set` по умолчанию **сливает** объект с текущим состоянием, поэтому экшены сохранятся.\n\nЛовушка: `set(initialState, true)` (режим replace) заменит состояние целиком — и экшены пропадут.\n\nДля тестов есть встроенный способ — вернуть стор к начальному состоянию, включая экшены:\n\n```ts\nbeforeEach(() => {\n  useCart.setState(useCart.getInitialState(), true);\n});\n```\n\nЕсли используется `persist`, после выхода стоит ещё очистить хранилище: `useCart.persist.clearStorage()`.",
+        "tags": [
+          "zustand",
+          "тесты"
+        ]
+      },
+      {
+        "id": "state-39",
+        "front": "Как Zustand устроен внутри и почему ему не нужен провайдер?",
+        "back": "Ядро — маленькая функция `createStore`: состояние хранится в замыкании, подписчики — в `Set`:\n\n```ts\nconst createStore = (init) => {\n  let state;\n  const listeners = new Set();\n  const setState = (partial) => {\n    const next = typeof partial === \"function\" ? partial(state) : partial;\n    if (!Object.is(next, state)) {\n      const prev = state;\n      state = Object.assign({}, state, next);\n      listeners.forEach((l) => l(state, prev));\n    }\n  };\n  const getState = () => state;\n  const subscribe = (l) => (listeners.add(l), () => listeners.delete(l));\n  state = init(setState, getState);\n  return { getState, setState, subscribe };\n};\n```\n\nХук подключает этот стор к React через `useSyncExternalStore` и перерисовывает компонент, только если изменился результат селектора.\n\nПровайдер не нужен, потому что стор — обычный объект на уровне модуля: любой файл, который его импортирует, получает тот же экземпляр. Обратная сторона — на сервере такой стор общий для всех запросов, поэтому в SSR его создают на запрос и передают через контекст.",
+        "tags": [
+          "zustand",
+          "внутреннее устройство"
+        ]
+      },
+      {
+        "id": "state-40",
+        "front": "Можно ли заменить Redux связкой `useReducer` + Context? Где предел?",
+        "back": "Для небольших задач — да:\n\n```tsx\nconst StateContext = createContext<State | null>(null);\nconst DispatchContext = createContext<Dispatch<Action> | null>(null);\n\nfunction CartProvider({ children }: { children: React.ReactNode }) {\n  const [state, dispatch] = useReducer(cartReducer, initialState);\n  return (\n    <DispatchContext value={dispatch}>\n      <StateContext value={state}>{children}</StateContext>\n    </DispatchContext>\n  );\n}\n```\n\n`dispatch` вынесен в отдельный контекст: его ссылка стабильна, и компоненты, которые только отправляют экшены, не перерисовываются при изменении state.\n\nПределы:\n\n- **нет селекторов** — каждый потребитель `StateContext` перерисовывается при любом изменении state;\n- нет middleware и DevTools;\n- асинхронную логику придётся писать самому.\n\nПодходит для состояния, которое меняется редко и нужно небольшой части дерева: форма-мастер, состояние виджета. Для глобального, часто меняющегося состояния лучше Zustand или Redux Toolkit.",
+        "tags": [
+          "react",
+          "context",
+          "useReducer"
+        ]
+      },
+      {
+        "id": "state-41",
+        "front": "Как устроены ключи запросов в TanStack Query? Что такое зависимые запросы?",
+        "back": "`queryKey` — массив, который однозначно описывает данные. В него входит **всё**, от чего зависит запрос:\n\n```ts\nuseQuery({\n  queryKey: [\"todos\", { status, page }],\n  queryFn: () => fetchTodos({ status, page }),\n});\n```\n\n- Поменялся `page` — это новый ключ, будет новый запрос и отдельная запись в кэше.\n- Порядок полей в объекте не важен — ключ хешируется детерминированно.\n- Инвалидация работает по префиксу: `invalidateQueries({ queryKey: [\"todos\"] })` обновит все списки задач.\n\nКлючи удобно собирать в одном месте (query key factory): `todoKeys.list(filters)`, `todoKeys.detail(id)`.\n\n**Зависимый запрос** ждёт данных другого — через `enabled`:\n\n```ts\nconst { data: user } = useQuery({ queryKey: [\"user\", email], queryFn: () => getUser(email) });\nconst { data: projects } = useQuery({\n  queryKey: [\"projects\", user?.id],\n  queryFn: () => getProjects(user!.id),\n  enabled: !!user?.id,\n});\n```",
+        "tags": [
+          "tanstack query",
+          "ключи"
+        ]
+      },
+      {
+        "id": "state-42",
+        "front": "Когда хранить состояние в URL?",
+        "back": "В `searchParams` стоит хранить то, что описывает **вид страницы**: фильтры, сортировку, номер страницы, поисковый запрос, открытую вкладку, выбранный товар.\n\nЧто это даёт:\n\n- ссылкой можно поделиться — коллега увидит то же самое;\n- работают кнопки «назад» и «вперёд»;\n- состояние переживает перезагрузку;\n- в Next.js сервер получает фильтры в `searchParams` и сразу рендерит нужные данные.\n\n```tsx\nconst params = useSearchParams();\nconst router = useRouter();\n\nconst setSort = (sort: string) => {\n  const next = new URLSearchParams(params);\n  next.set(\"sort\", sort);\n  router.replace(`?${next}`, { scroll: false });\n};\n```\n\nЧто **не** класть в URL: секреты и личные данные, большие объекты, значения, которые меняются на каждый символ без debounce, временное UI-состояние (открыт ли дропдаун).\n\nДля удобной работы есть библиотека `nuqs`: типизированные параметры как `useState`.",
+        "tags": [
+          "url",
+          "архитектура"
+        ]
+      },
+      {
+        "id": "state-43",
+        "front": "Как сделать оптимистичное обновление в RTK Query?",
+        "back": "В мутации используют `onQueryStarted`: сразу меняют кэш, а при ошибке откатывают изменения:\n\n```ts\ntoggleTodo: build.mutation<Todo, { id: string; done: boolean }>({\n  query: ({ id, done }) => ({ url: `todos/${id}`, method: \"PATCH\", body: { done } }),\n  async onQueryStarted({ id, done }, { dispatch, queryFulfilled }) {\n    const patch = dispatch(\n      api.util.updateQueryData(\"getTodos\", undefined, (draft) => {\n        const todo = draft.find((t) => t.id === id);\n        if (todo) todo.done = done;\n      }),\n    );\n    try {\n      await queryFulfilled;\n    } catch {\n      patch.undo(); // сервер ответил ошибкой — вернуть как было\n    }\n  },\n}),\n```\n\n- `updateQueryData(endpoint, args, recipe)` меняет закэшированный ответ через Immer — можно «мутировать» `draft`.\n- `args` должны совпадать с аргументами, с которыми вызывался запрос (здесь `undefined`).\n- `patch.undo()` возвращает кэш в прошлое состояние.\n\nКогда оправдано: частые и почти всегда успешные действия — лайки, чекбоксы, перетаскивание. Для оплаты и необратимых операций лучше честно показать загрузку.",
+        "tags": [
+          "rtk query",
+          "оптимистичные обновления"
+        ]
+      },
+      {
+        "id": "state-44",
+        "front": "Где хранить состояние формы: локально или в глобальном сторе?",
+        "back": "По умолчанию — **локально**: в `useState`, `useReducer` или react-hook-form внутри компонента формы. Ввод пользователя нужен только этой форме до отправки, а глобальный стор добавил бы лишние ререндеры и код.\n\nВ стор или другое долговременное место состояние формы переносят, когда:\n\n- это **многошаговый мастер**, и шаги — разные маршруты;\n- нужно сохранять **черновик** между перезагрузками (стор с `persist`, `sessionStorage`);\n- данные формы одновременно показываются в другом месте (живое превью);\n- параметры формы — это фильтры, которыми хочется делиться (URL).\n\nПосле отправки результат — это уже **серверные данные**: их место в кэше TanStack Query, RTK Query или в серверных компонентах, а не в клиентском сторе.",
+        "tags": [
+          "формы",
+          "архитектура"
+        ]
+      },
+      {
+        "id": "state-45",
+        "front": "Что такое сигналы и чем они отличаются от `useState`?",
+        "back": "Сигнал — контейнер значения, который сам отслеживает, кто его читает. При изменении обновляются только эти места, а не весь компонент:\n\n```ts\nimport { signal, computed, effect } from \"@preact/signals\";\n\nconst count = signal(0);\nconst double = computed(() => count.value * 2);\n\neffect(() => console.log(double.value)); // перезапустится при смене count\ncount.value++;\n```\n\nОтличия от React-модели:\n\n- `useState` перерисовывает **компонент целиком**, и React сравнивает результат;\n- сигнал обновляет **точечно** (fine-grained) — конкретный текстовый узел или эффект, без повторного вызова компонента;\n- зависимости собираются автоматически, массивов зависимостей нет.\n\nСигналы — основа Solid, Preact Signals, Angular, Qwik, похожая модель у `ref` во Vue; для JavaScript есть предложение в TC39. React идёт другим путём: вместо сигналов — React Compiler, который автоматически убирает лишние ререндеры.",
+        "tags": [
+          "сигналы",
+          "реактивность"
+        ]
+      },
+      {
+        "id": "state-46",
+        "front": "Как подписаться на частые изменения Zustand-стора без ререндеров?",
+        "back": "Для значений, которые меняются десятки раз в секунду (координаты мыши, прогресс анимации, позиция скролла), ререндер на каждое изменение — слишком дорого. Можно подписаться на стор **вручную** и обновлять DOM напрямую через `ref`:\n\n```tsx\nfunction Cursor() {\n  const dotRef = useRef<HTMLDivElement>(null);\n\n  useEffect(\n    () =>\n      usePointer.subscribe((state) => {\n        if (dotRef.current) {\n          dotRef.current.style.transform = `translate(${state.x}px, ${state.y}px)`;\n        }\n      }),\n    [],\n  );\n\n  return <div ref={dotRef} className=\"dot\" />;\n}\n```\n\n`subscribe` возвращает функцию отписки — её удобно вернуть из эффекта как cleanup.\n\nВ документации Zustand это называется transient updates. Компонент отрисовывается один раз, а дальше значение меняется без участия React. Этот приём стоит применять точечно: обычные данные лучше читать хуком с селектором.",
+        "tags": [
+          "zustand",
+          "производительность"
+        ]
       }
     ]
   },
@@ -1339,7 +1990,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "sql-02",
         "front": "Чем `WHERE` отличается от `HAVING`?",
-        "back": "`WHERE` фильтрует **строки до** группировки. `HAVING` — **группы после** `GROUP BY` и умеет работать с агрегатами:\n\n```sql\nSELECT user_id, count(*) AS orders\nFROM orders\nWHERE created_at > now() - interval '30 days'\nGROUP BY user_id\nHAVING count(*) >= 5;\n```",
+        "back": "`WHERE` фильтрует **строки до** группировки. `HAVING` — **группы после** `GROUP BY`, и только в нём можно использовать агрегаты:\n\n```sql\nSELECT user_id, count(*) AS orders\nFROM orders\nWHERE created_at > now() - interval '30 days'  -- отбросить старые строки\nGROUP BY user_id\nHAVING count(*) >= 5;                          -- оставить активных\n```\n\n`WHERE count(*) > 5` — ошибка: на этапе `WHERE` групп ещё нет.\n\nСовет для производительности: всё, что можно отфильтровать по строкам, пиши в `WHERE`. Тогда в группировку попадёт меньше данных, а условие сможет использовать индекс.",
         "tags": [
           "группировка"
         ]
@@ -1347,7 +1998,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "sql-03",
         "front": "В каком порядке логически выполняется `SELECT`?",
-        "back": "`FROM / JOIN` → `WHERE` → `GROUP BY` → `HAVING` → `SELECT` → `DISTINCT` → `ORDER BY` → `LIMIT / OFFSET`.\n\nПоэтому алиас из `SELECT` нельзя использовать в `WHERE`, но можно в `ORDER BY` (в PostgreSQL ещё и в `GROUP BY`).",
+        "back": "`FROM / JOIN` → `WHERE` → `GROUP BY` → `HAVING` → `SELECT` → `DISTINCT` → `ORDER BY` → `LIMIT / OFFSET`.\n\nИз этого порядка следуют частые ошибки:\n\n- алиас из `SELECT` нельзя использовать в `WHERE` — он ещё не вычислен; в `ORDER BY` можно (в PostgreSQL ещё и в `GROUP BY`);\n- агрегаты нельзя писать в `WHERE`, только в `HAVING`;\n- оконные функции считаются на этапе `SELECT`, поэтому фильтровать по ним можно только во внешнем запросе или CTE.\n\n```sql\nSELECT price * qty AS total FROM items\nWHERE total > 100;        -- ошибка\n-- нужно: WHERE price * qty > 100\n```\n\nЭто **логический** порядок: планировщик физически может выполнять шаги иначе, если результат тот же.",
         "tags": [
           "основы"
         ]
@@ -1449,7 +2100,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "sql-15",
         "front": "Чем отличаются `ROW_NUMBER`, `RANK` и `DENSE_RANK`?",
-        "back": "Для значений 100, 90, 90, 80:\n\n- `row_number` → 1, 2, 3, 4 — всегда уникальный\n- `rank` → 1, 2, 2, 4 — пропуск после равных\n- `dense_rank` → 1, 2, 2, 3 — без пропусков",
+        "back": "Все три нумеруют строки внутри окна по `ORDER BY`, но по-разному ведут себя при равных значениях. Для 100, 90, 90, 80:\n\n- `row_number` → 1, 2, 3, 4 — всегда уникальный, порядок среди равных случаен\n- `rank` → 1, 2, 2, 4 — равные делят место, после них пропуск\n- `dense_rank` → 1, 2, 2, 3 — без пропусков\n\n```sql\nSELECT name, salary,\n       dense_rank() OVER (ORDER BY salary DESC) AS place\nFROM employees;\n```\n\nЧто выбрать: «ровно N строк на группу» (последний заказ, топ-3) — `row_number`; «все, кто на 2-м месте» или «вторая по величине зарплата» — `dense_rank`; места как в спорте — `rank`.",
         "tags": [
           "оконные функции"
         ]
@@ -1465,7 +2116,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "sql-17",
         "front": "`UNION` против `UNION ALL`?",
-        "back": "`UNION` объединяет результаты и **убирает дубликаты** — это лишняя сортировка или хеширование, дороже.\n\n`UNION ALL` просто склеивает. Если дублей быть не может или они нужны — бери `UNION ALL`. Число и типы колонок должны совпадать.",
+        "back": "`UNION` объединяет результаты и **убирает дубликаты** — для этого нужна сортировка или хеширование всего результата, это дороже.\n\n`UNION ALL` просто склеивает строки. Если дублей быть не может (например, данные из разных таблиц с разными id) или они нужны — бери `UNION ALL`.\n\n```sql\nSELECT email FROM customers\nUNION ALL\nSELECT email FROM subscribers;\n```\n\nПравила: число колонок и их типы должны совпадать, имена колонок берутся из первого запроса, `ORDER BY` пишется один раз в конце и сортирует общий результат.\n\nРодственники: `INTERSECT` — строки, которые есть в обоих результатах, `EXCEPT` — есть в первом, но нет во втором.",
         "tags": [
           "основы"
         ]
@@ -1481,7 +2132,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "sql-19",
         "front": "Какие подводные камни у `NULL`?",
-        "back": "`NULL` — это «неизвестно». Любое сравнение с ним даёт `NULL`, а не true/false.\n\n- `WHERE x = NULL` ничего не найдёт → нужно `IS NULL`.\n- `NOT IN (подзапрос с NULL)` вернёт пустоту.\n- Агрегаты (`sum`, `avg`, `count(col)`) пропускают `NULL`.\n\nПомогают `COALESCE(x, 0)` и `IS DISTINCT FROM`.",
+        "back": "`NULL` — это «неизвестно». Любое сравнение с ним даёт `NULL`, а не true/false, а `WHERE` пропускает только true.\n\n- `WHERE x = NULL` ничего не найдёт → нужно `IS NULL`.\n- `WHERE status <> 'done'` не вернёт строки, где `status IS NULL`.\n- `NOT IN (подзапрос, где есть NULL)` вернёт пустоту: `x <> NULL` — неизвестно.\n- Агрегаты (`sum`, `avg`, `count(col)`) пропускают `NULL`, а `sum` по пустому набору даёт `NULL`, а не 0.\n- `'a' || NULL` → `NULL`.\n\n```sql\nSELECT coalesce(sum(amount), 0) FROM payments WHERE user_id = 1;\nSELECT * FROM tasks WHERE status IS DISTINCT FROM 'done';\n```\n\nПомогают `COALESCE`, `IS DISTINCT FROM` и `NOT EXISTS` вместо `NOT IN`.",
         "tags": [
           "null",
           "ловушка"
@@ -1490,7 +2141,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "sql-20",
         "front": "`COUNT(*)`, `COUNT(column)` и `COUNT(DISTINCT column)`?",
-        "back": "- `count(*)` — число строк;\n- `count(col)` — число строк, где `col` **не** `NULL`;\n- `count(DISTINCT col)` — число уникальных непустых значений.\n\nЛовушка с `LEFT JOIN`: считать надо `count(o.id)`, иначе пользователи без заказов получат 1 вместо 0.",
+        "back": "- `count(*)` — число строк;\n- `count(col)` — число строк, где `col` **не** `NULL`;\n- `count(DISTINCT col)` — число уникальных непустых значений.\n\nЛовушка с `LEFT JOIN`: у пользователя без заказов всё равно есть одна строка (с `NULL` в колонках заказа), поэтому `count(*)` даст 1 вместо 0.\n\n```sql\nSELECT u.id, count(o.id) AS orders   -- не count(*)\nFROM users u\nLEFT JOIN orders o ON o.user_id = u.id\nGROUP BY u.id;\n```\n\nМиф: `count(1)` быстрее `count(*)`. В PostgreSQL это одно и то же, а `count(*)` даже чуть понятнее планировщику. Точный `count(*)` по большой таблице медленный (MVCC требует проверить видимость строк), поэтому для «примерно 1,2 млн» берут оценку из `pg_class.reltuples`.",
         "tags": [
           "агрегаты"
         ]
@@ -1515,7 +2166,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "sql-23",
         "front": "Как сделать «вставить или обновить» (upsert) в PostgreSQL?",
-        "back": "```sql\nINSERT INTO stats (user_id, views)\nVALUES (1, 1)\nON CONFLICT (user_id)\nDO UPDATE SET views = stats.views + EXCLUDED.views;\n```\n\nНужен уникальный индекс или ограничение на колонке конфликта. `EXCLUDED` — строка, которую пытались вставить. `ON CONFLICT DO NOTHING` — просто пропустить.",
+        "back": "```sql\nINSERT INTO stats (user_id, views)\nVALUES (1, 1)\nON CONFLICT (user_id)\nDO UPDATE SET views = stats.views + EXCLUDED.views;\n```\n\n- Нужен уникальный индекс или ограничение на колонке конфликта — по нему PostgreSQL понимает, что строка «уже есть».\n- `EXCLUDED` — строка, которую пытались вставить.\n- `ON CONFLICT DO NOTHING` — просто пропустить дубликат.\n- Можно добавить условие: `DO UPDATE SET … WHERE stats.updated_at < EXCLUDED.updated_at`.\n\nГлавное преимущество перед «SELECT, потом INSERT или UPDATE» — **атомарность**: два параллельных запроса не создадут дубль и не упадут на уникальном ключе. Начиная с PostgreSQL 15 есть ещё `MERGE` для сложных сценариев синхронизации.",
         "tags": [
           "postgres",
           "upsert"
@@ -1653,6 +2304,194 @@ export const SEED: SeedDeck[] = [
           "postgres",
           "даты"
         ]
+      },
+      {
+        "id": "sql-39",
+        "front": "Почему нельзя выбрать колонку, которой нет в `GROUP BY`?",
+        "back": "После группировки от каждой группы остаётся **одна строка**. Если в группе пять заказов с разными датами, неясно, какую дату показать:\n\n```sql\nSELECT user_id, created_at, count(*)  -- ошибка: created_at не сгруппирован\nFROM orders\nGROUP BY user_id;\n```\n\nВ `SELECT` можно указывать только колонки из `GROUP BY` и агрегаты: `max(created_at)`, `count(*)`, `string_agg(...)`.\n\nИсключение в PostgreSQL: если сгруппировать по **первичному ключу**, можно брать остальные колонки той же таблицы — они однозначно определяются ключом:\n\n```sql\nSELECT u.id, u.name, count(o.id)\nFROM users u\nLEFT JOIN orders o ON o.user_id = u.id\nGROUP BY u.id;  -- u.name можно, потому что u.id — первичный ключ\n```\n\nMySQL в старых режимах разрешал любые колонки и возвращал случайное значение из группы — источник тихих багов.",
+        "tags": [
+          "группировка",
+          "основы"
+        ]
+      },
+      {
+        "id": "sql-40",
+        "front": "Что делают `ON DELETE CASCADE`, `SET NULL` и `RESTRICT`?",
+        "back": "Определяют, что случится с дочерними строками, когда удаляют родительскую:\n\n```sql\nCREATE TABLE comments (\n  id      bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  post_id bigint NOT NULL REFERENCES posts(id) ON DELETE CASCADE,\n  user_id bigint REFERENCES users(id) ON DELETE SET NULL,\n  rating  int CHECK (rating BETWEEN 1 AND 5)\n);\n```\n\n- `CASCADE` — удалить детей вместе с родителем (комментарии вместе с постом);\n- `SET NULL` — оставить детей, обнулив ссылку (комментарий остаётся, автор «удалён»);\n- `RESTRICT` / `NO ACTION` (по умолчанию) — запретить удаление, пока есть дети. `NO ACTION` можно отложить до конца транзакции, `RESTRICT` проверяется сразу.\n\n`CHECK` — произвольное условие на значения строки.\n\nЛовушка, о которой часто спрашивают: PostgreSQL **не создаёт индекс** на колонке внешнего ключа автоматически. Без индекса на `comments.post_id` каждое удаление поста будет сканировать всю таблицу комментариев.",
+        "tags": [
+          "связи",
+          "ограничения"
+        ]
+      },
+      {
+        "id": "sql-41",
+        "front": "Как в таблицах реализуются связи один-к-одному, один-ко-многим и многие-ко-многим?",
+        "back": "**Один-ко-многим** — внешний ключ на стороне «многих»: у заказа есть `user_id`, у пользователя много заказов.\n\n**Один-к-одному** — тот же внешний ключ, но с `UNIQUE`, чтобы на одного родителя была максимум одна строка:\n\n```sql\nCREATE TABLE profiles (\n  user_id bigint PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,\n  bio text\n);\n```\n\n**Многие-ко-многим** — отдельная связующая таблица с двумя внешними ключами и составным первичным ключом:\n\n```sql\nCREATE TABLE user_roles (\n  user_id bigint REFERENCES users(id) ON DELETE CASCADE,\n  role_id bigint REFERENCES roles(id) ON DELETE CASCADE,\n  granted_at timestamptz NOT NULL DEFAULT now(),\n  PRIMARY KEY (user_id, role_id)\n);\n```\n\nСоставной ключ не даёт выдать одну роль дважды. В связующую таблицу удобно класть данные о самой связи: дату, кто выдал, порядок.",
+        "tags": [
+          "связи",
+          "проектирование"
+        ]
+      },
+      {
+        "id": "sql-42",
+        "front": "Почему нельзя просто повесить индекс на каждую колонку?",
+        "back": "Индекс ускоряет чтение, но у него есть цена:\n\n- **Медленнее запись.** Каждый `INSERT`, `UPDATE` и `DELETE` обновляет все индексы таблицы. Десять индексов — десять дополнительных структур на каждую вставку.\n- **Место на диске и в памяти.** Индексы конкурируют с данными за кэш, и в памяти помещается меньше полезного.\n- **Нет HOT-обновлений.** Если меняется проиндексированная колонка, PostgreSQL не может обновить строку «на месте» — таблица и индексы разбухают быстрее.\n- **Бесполезность при низкой селективности.** Индекс по `is_active`, где 95% строк `true`, планировщик просто проигнорирует.\n\nКак правильно: индексы под **реальные запросы** (`WHERE`, `JOIN`, `ORDER BY`), составные — в нужном порядке колонок, проверка через `EXPLAIN ANALYZE`. Неиспользуемые индексы находят по `pg_stat_user_indexes`, где `idx_scan = 0`.",
+        "tags": [
+          "индексы",
+          "производительность"
+        ]
+      },
+      {
+        "id": "sql-43",
+        "front": "Какие типы индексов есть в PostgreSQL?",
+        "back": "- **B-tree** (по умолчанию) — равенство, диапазоны (`<`, `BETWEEN`), сортировка, `LIKE 'abc%'`. Подходит в 90% случаев.\n- **Hash** — только равенство `=`. Бывает компактнее B-tree для длинных значений, но не умеет диапазоны и сортировку.\n- **GIN** — «обратный» индекс для значений, внутри которых много элементов: массивы (`@>`), `jsonb`, полнотекстовый поиск, поиск по подстроке через `pg_trgm`.\n- **GiST** — геометрия и PostGIS, диапазоны (`tstzrange`), поиск ближайших соседей, exclusion constraints («бронирования не пересекаются»).\n- **BRIN** — очень маленький индекс для огромных таблиц, где данные физически упорядочены: логи и события по времени вставки.\n\n```sql\nCREATE INDEX ON products USING gin (tags);           -- WHERE tags @> '{sale}'\nCREATE INDEX ON events USING brin (created_at);       -- миллиарды строк логов\n```",
+        "tags": [
+          "индексы",
+          "postgres"
+        ]
+      },
+      {
+        "id": "sql-44",
+        "front": "Как быстро искать по подстроке, если `LIKE '%текст%'` не использует индекс?",
+        "back": "B-tree хранит значения отсортированными, поэтому умеет искать только по **началу** строки (`LIKE 'abc%'`). Шаблон с `%` в начале требует проверить каждую строку.\n\n**Вариант 1 — триграммы** (`pg_trgm`). Строка разбивается на тройки символов, GIN-индекс по ним ускоряет `LIKE` и `ILIKE` с любым положением подстроки:\n\n```sql\nCREATE EXTENSION IF NOT EXISTS pg_trgm;\nCREATE INDEX products_name_trgm ON products USING gin (name gin_trgm_ops);\n\nSELECT * FROM products WHERE name ILIKE '%телефон%';\n```\n\nЕщё умеет нечёткий поиск с опечатками: `similarity(name, 'тилефон')`.\n\n**Вариант 2 — полнотекстовый поиск.** Слова приводятся к основе (стемминг), поэтому по запросу «кошки» найдутся «кошка», «кошку», «кошкой». Стеммер работает по правилам, а не по словарю: форму с беглой гласной «кошек» он не свяжет — для этого подключают словари (hunspell).\n\n```sql\nCREATE INDEX ON posts USING gin (to_tsvector('russian', body));\n\nSELECT * FROM posts\nWHERE to_tsvector('russian', body) @@ plainto_tsquery('russian', 'кошки');\n```\n\nДля сложного поиска с ранжированием, фасетами и подсказками берут Elasticsearch или Meilisearch.",
+        "tags": [
+          "поиск",
+          "индексы"
+        ]
+      },
+      {
+        "id": "sql-45",
+        "front": "Как посчитать нарастающий итог и разницу с предыдущей строкой?",
+        "back": "Оконные функции с `ORDER BY` внутри `OVER`:\n\n```sql\nSELECT\n  day,\n  revenue,\n  sum(revenue) OVER (ORDER BY day) AS running_total,\n  revenue - lag(revenue) OVER (ORDER BY day) AS diff,\n  avg(revenue) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d\nFROM daily_revenue;\n```\n\n- `sum(...) OVER (ORDER BY day)` — сумма от первой строки до текущей;\n- `lag(col)` — значение из предыдущей строки (`lead` — из следующей); для первой строки — `NULL`;\n- `ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` — скользящее окно из 7 строк, например среднее за неделю.\n\nЛовушка: рамка по умолчанию — `RANGE`, а не `ROWS`. Строки с одинаковым значением `day` получат **одинаковый** нарастающий итог — сразу с учётом их всех. Если нужен построчный итог, укажи `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` или сделай сортировку уникальной.",
+        "tags": [
+          "оконные функции"
+        ]
+      },
+      {
+        "id": "sql-46",
+        "front": "Чем `PARTITION BY` отличается от `GROUP BY`?",
+        "back": "`GROUP BY` **схлопывает** строки: из десяти сотрудников отдела остаётся одна строка с агрегатом.\n\n`PARTITION BY` в оконной функции считает агрегат по группе, но **оставляет все строки** — к каждой добавляется результат:\n\n```sql\nSELECT\n  name,\n  department,\n  salary,\n  avg(salary) OVER (PARTITION BY department) AS dept_avg,\n  salary - avg(salary) OVER (PARTITION BY department) AS diff\nFROM employees;\n```\n\nКаждый сотрудник видит среднюю зарплату своего отдела и разницу с ней. Через `GROUP BY` пришлось бы делать подзапрос и `JOIN`.\n\nКак выбрать: нужен итог по группам (отчёт «отдел — средняя зарплата») — `GROUP BY`. Нужны строки плюс контекст группы (доля, место, отклонение от среднего) — окно.",
+        "tags": [
+          "оконные функции",
+          "группировка"
+        ]
+      },
+      {
+        "id": "sql-47",
+        "front": "Как посчитать несколько условных агрегатов одним запросом?",
+        "back": "В PostgreSQL у любого агрегата есть `FILTER`:\n\n```sql\nSELECT\n  user_id,\n  count(*)                                    AS total,\n  count(*) FILTER (WHERE status = 'paid')     AS paid,\n  count(*) FILTER (WHERE status = 'canceled') AS canceled,\n  sum(amount) FILTER (WHERE status = 'paid')  AS revenue\nFROM orders\nGROUP BY user_id;\n```\n\nЭто один проход по таблице вместо трёх запросов. В других СУБД то же делают через `sum(CASE WHEN status = 'paid' THEN 1 ELSE 0 END)`.\n\nСклеить значения группы в строку, массив или JSON:\n\n```sql\nSELECT\n  post_id,\n  string_agg(tag, ', ' ORDER BY tag) AS tags,   -- 'css, react'\n  array_agg(tag)                     AS tag_list,\n  json_agg(json_build_object('id', id, 'tag', tag)) AS tag_json\nFROM post_tags\nGROUP BY post_id;\n```\n\n`json_agg` удобен, чтобы получить вложенные данные одним запросом, без N+1.",
+        "tags": [
+          "агрегаты",
+          "postgres"
+        ]
+      },
+      {
+        "id": "sql-48",
+        "front": "Что такое денормализация и когда она оправдана?",
+        "back": "Сознательное дублирование данных ради быстрого чтения. Примеры:\n\n- счётчик `comments_count` в таблице постов вместо `count(*)` на каждый показ;\n- `author_name` в заказе, чтобы не делать `JOIN` (и сохранить имя на момент покупки);\n- готовая таблица с отчётом по дням вместо агрегации миллионов строк.\n\nЦена — **согласованность**. При каждом новом комментарии счётчик нужно обновить в той же транзакции или триггером, иначе данные разъедутся.\n\n```sql\nBEGIN;\nINSERT INTO comments (post_id, body) VALUES (1, 'Отлично!');\nUPDATE posts SET comments_count = comments_count + 1 WHERE id = 1;\nCOMMIT;\n```\n\nПорядок действий: сначала нормализованная схема и индексы. Денормализовать — когда замеры показали, что чтение действительно узкое место. Альтернативы: материализованное представление или кэш.\n\nИногда дублирование нужно бизнесу, а не скорости: цена товара в заказе должна остаться прежней, даже если в каталоге её поменяли.",
+        "tags": [
+          "проектирование",
+          "денормализация"
+        ]
+      },
+      {
+        "id": "sql-49",
+        "front": "Чем отличаются репликация, партиционирование и шардирование?",
+        "back": "- **Репликация** — полные копии одной базы на нескольких серверах. Пишут в основной (primary), читают в том числе с реплик. Даёт отказоустойчивость и масштабирование **чтения**.\n- **Партиционирование** — одна большая таблица делится на части **внутри одного сервера**, например по месяцам. Запрос за октябрь читает только нужную часть, старые данные легко удалить целой партицией.\n- **Шардирование** — данные делятся между **разными серверами** по ключу (например, `user_id`). Масштабирует **запись** и объём, но сложнее всего.\n\n```sql\nCREATE TABLE events (id bigint, created_at timestamptz, payload jsonb)\n  PARTITION BY RANGE (created_at);\n\nCREATE TABLE events_2026_10 PARTITION OF events\n  FOR VALUES FROM ('2026-10-01') TO ('2026-11-01');\n```\n\nПодводные камни: у реплик есть **задержка** (пользователь сохранил профиль, а с реплики прочитал старый), а при шардировании трудно делать `JOIN` и транзакции между шардами.",
+        "tags": [
+          "масштабирование"
+        ]
+      },
+      {
+        "id": "sql-50",
+        "front": "Как сделать очередь задач на PostgreSQL?",
+        "back": "Несколько воркеров должны забирать задачи, не мешая друг другу и не беря одну задачу дважды. Для этого есть `FOR UPDATE SKIP LOCKED`:\n\n```sql\nUPDATE jobs\nSET status = 'running', started_at = now()\nWHERE id = (\n  SELECT id FROM jobs\n  WHERE status = 'queued'\n  ORDER BY created_at\n  LIMIT 1\n  FOR UPDATE SKIP LOCKED\n)\nRETURNING *;\n```\n\n- `FOR UPDATE` блокирует выбранную строку до конца транзакции;\n- `SKIP LOCKED` пропускает строки, которые уже заблокировал другой воркер, — без ожидания;\n- `RETURNING` сразу отдаёт задачу воркеру.\n\nБез `SKIP LOCKED` воркеры выстроились бы в очередь за одной и той же строкой.\n\nТак устроены библиотеки вроде pg-boss и graphile-worker: отдельный брокер (Redis, RabbitMQ) для небольших и средних нагрузок не нужен, а задача создаётся в той же транзакции, что и бизнес-данные.",
+        "tags": [
+          "блокировки",
+          "очередь"
+        ]
+      },
+      {
+        "id": "sql-51",
+        "front": "Что такое пул соединений и зачем PgBouncer?",
+        "back": "Каждое соединение с PostgreSQL — отдельный процесс на сервере, который занимает память и долго устанавливается. По умолчанию `max_connections = 100`.\n\nПроблема serverless: каждая функция на Vercel может открыть своё соединение. Сто параллельных запросов — сто соединений, и база отвечает `too many connections`.\n\n**Пул** держит небольшое число постоянных соединений и раздаёт их запросам по очереди:\n\n- внутри приложения — пул драйвера (`pg.Pool`) или ORM;\n- снаружи — PgBouncer или встроенный пулер хостинга (у Neon и Supabase есть отдельный «pooled» URL).\n\nРежим **transaction pooling** отдаёт соединение только на время транзакции, поэтому ломает то, что живёт на уровне сессии: `SET` без `LOCAL`, `LISTEN/NOTIFY`, сессионные advisory-блокировки.\n\nПрактика с Prisma: приложение ходит через pooled URL, а миграции — через прямое (direct) соединение.",
+        "tags": [
+          "соединения",
+          "serverless"
+        ]
+      },
+      {
+        "id": "sql-52",
+        "front": "UUID или `bigint` для первичного ключа?",
+        "back": "**`bigint` (identity)**:\n\n- 8 байт, компактные индексы;\n- последовательный — новые строки дописываются в конец индекса, вставка быстрая;\n- но легко перебрать (`/orders/1001`, `/orders/1002`) и видно, сколько у вас заказов.\n\n**UUID v4** (`gen_random_uuid()`):\n\n- 16 байт;\n- можно сгенерировать на клиенте до сохранения, удобно для офлайна и слияния баз;\n- не угадывается;\n- но случайный: вставки разбрасываются по всему индексу, индекс фрагментируется и хуже помещается в кэш.\n\n**UUID v7** — компромисс: начинается с метки времени, поэтому упорядочен почти как `bigint`, но остаётся уникальным глобально. В PostgreSQL 18 есть встроенная функция `uuidv7()`.\n\nЧастая схема: `bigint` как внутренний ключ для связей и отдельный публичный идентификатор (UUID или короткий id) для URL и API.",
+        "tags": [
+          "первичный ключ",
+          "uuid"
+        ]
+      },
+      {
+        "id": "sql-53",
+        "front": "Что делает `RETURNING` в PostgreSQL?",
+        "back": "Возвращает строки, которые затронул `INSERT`, `UPDATE` или `DELETE`, — без отдельного `SELECT`:\n\n```sql\nINSERT INTO users (email) VALUES ('ann@example.com')\nRETURNING id, created_at;\n\nUPDATE products SET stock = stock - 1\nWHERE id = 42 AND stock > 0\nRETURNING stock;            -- пусто, если товар закончился\n\nDELETE FROM sessions WHERE expires_at < now()\nRETURNING user_id;\n```\n\nЗачем:\n\n- получить сгенерированный id и значения по умолчанию сразу после вставки;\n- атомарно изменить и узнать результат — между `UPDATE` и `SELECT` никто не вклинится;\n- меньше запросов к базе.\n\nС CTE можно перенести данные одним запросом: `WITH moved AS (DELETE FROM queue … RETURNING *) INSERT INTO archive SELECT * FROM moved`.\n\nPrisma использует `RETURNING` под капотом, когда возвращает созданную запись. В PostgreSQL 18 в `RETURNING` можно получить и старые значения: `RETURNING old.price, new.price`.",
+        "tags": [
+          "postgres",
+          "returning"
+        ]
+      },
+      {
+        "id": "sql-54",
+        "front": "Как `NULL` ведёт себя в `ORDER BY` и в уникальных ограничениях?",
+        "back": "**Сортировка.** В PostgreSQL `NULL` считается **больше** любого значения: при `ASC` он в конце, при `DESC` — в начале. Это часто ломает «сортировку по рейтингу»: товары без рейтинга оказываются наверху.\n\n```sql\nSELECT * FROM products ORDER BY rating DESC NULLS LAST;\n```\n\nИндекс тоже можно создать с `NULLS LAST`, чтобы он подходил под такую сортировку.\n\n**Уникальность.** `NULL` не равен другому `NULL`, поэтому в колонке с `UNIQUE` может быть сколько угодно `NULL`:\n\n```sql\nCREATE TABLE users (email text UNIQUE);\nINSERT INTO users VALUES (NULL), (NULL);  -- обе строки вставятся\n```\n\nОбычно это и нужно (email необязательный, но если указан — уникальный). Если нужно иначе, в PostgreSQL 15+ есть `UNIQUE NULLS NOT DISTINCT`.",
+        "tags": [
+          "null",
+          "сортировка",
+          "unique"
+        ]
+      },
+      {
+        "id": "sql-55",
+        "front": "Почему `created_at BETWEEN '2026-01-01' AND '2026-01-31'` теряет данные?",
+        "back": "`BETWEEN` включает обе границы, а строка `'2026-01-31'` для `timestamp` означает `2026-01-31 00:00:00`. Всё, что создано 31 января после полуночи, в выборку **не попадёт**.\n\nПравильно — полуинтервал «от включительно, до исключительно»:\n\n```sql\nSELECT * FROM orders\nWHERE created_at >= '2026-01-01'\n  AND created_at <  '2026-02-01';\n```\n\nПлюсы: не нужно знать, сколько дней в месяце, нет проблем с долями секунды, а соседние периоды не пересекаются и не теряют строки на стыке.\n\nВторая ловушка — часовой пояс. Для `timestamptz` граница `'2026-01-01'` трактуется в часовом поясе сессии. Если отчёт нужен по московскому времени, укажи пояс явно: `'2026-01-01 00:00+03'`.\n\nЕщё один анти-паттерн: `WHERE date(created_at) = '2026-01-15'` — функция над колонкой мешает использовать обычный индекс по `created_at`.",
+        "tags": [
+          "даты",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "sql-56",
+        "front": "Как найти пользователей, у которых нет ни одного заказа?",
+        "back": "Три способа:\n\n```sql\n-- 1. NOT EXISTS — обычно лучший вариант\nSELECT u.* FROM users u\nWHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id);\n\n-- 2. LEFT JOIN + проверка на NULL\nSELECT u.* FROM users u\nLEFT JOIN orders o ON o.user_id = u.id\nWHERE o.id IS NULL;\n\n-- 3. NOT IN — с ловушкой\nSELECT * FROM users\nWHERE id NOT IN (SELECT user_id FROM orders);\n```\n\nПервые два PostgreSQL выполняет одинаково эффективно (anti join).\n\n`NOT IN` опасен: если в подзапросе встретится хотя бы один `NULL` (например, заказ без пользователя), результат будет **пустым**. Сравнение `id <> NULL` даёт «неизвестно», и строка отбрасывается.\n\nВ варианте с `LEFT JOIN` проверяй на `NULL` колонку, которая в найденной строке не может быть пустой, — первичный ключ `o.id`.",
+        "tags": [
+          "задача",
+          "join"
+        ]
+      },
+      {
+        "id": "sql-57",
+        "front": "Как выбрать топ-3 товара по продажам в каждой категории?",
+        "back": "Пронумеровать строки внутри каждой категории и отфильтровать во внешнем запросе:\n\n```sql\nSELECT category_id, name, sales\nFROM (\n  SELECT\n    p.*,\n    row_number() OVER (PARTITION BY category_id ORDER BY sales DESC) AS rn\n  FROM products p\n) ranked\nWHERE rn <= 3\nORDER BY category_id, rn;\n```\n\nФильтровать по `rn` прямо в `WHERE` нельзя: оконные функции вычисляются на этапе `SELECT`, уже после `WHERE`.\n\nЕсли при равенстве продаж нужно взять **всех** претендентов на третье место, замени `row_number` на `dense_rank`.\n\nАльтернатива в PostgreSQL — `LATERAL`: для каждой категории выполнить подзапрос с `LIMIT 3`. Это быстрее, когда категорий мало, а товаров много и есть индекс `(category_id, sales DESC)`:\n\n```sql\nSELECT c.id, top.*\nFROM categories c\nCROSS JOIN LATERAL (\n  SELECT name, sales FROM products\n  WHERE category_id = c.id\n  ORDER BY sales DESC\n  LIMIT 3\n) top;\n```",
+        "tags": [
+          "задача",
+          "оконные функции"
+        ]
+      },
+      {
+        "id": "sql-58",
+        "front": "Как посчитать заказы по месяцам, включая месяцы без заказов?",
+        "back": "Группировка по началу месяца через `date_trunc`:\n\n```sql\nSELECT date_trunc('month', created_at) AS month, count(*) AS orders\nFROM orders\nGROUP BY 1\nORDER BY 1;\n```\n\nМесяцы без заказов здесь просто пропадут, а графику нужны нули. Сгенерируем все месяцы и присоединим данные:\n\n```sql\nSELECT m.month, count(o.id) AS orders\nFROM generate_series('2026-01-01'::date, '2026-12-01'::date, interval '1 month') AS m(month)\nLEFT JOIN orders o\n  ON o.created_at >= m.month\n AND o.created_at <  m.month + interval '1 month'\nGROUP BY m.month\nORDER BY m.month;\n```\n\n- `count(o.id)`, а не `count(*)` — иначе пустые месяцы получат 1;\n- условие в `ON`, а не в `WHERE` — иначе `LEFT JOIN` превратится во внутренний;\n- для `timestamptz` границы месяца зависят от часового пояса сессии — для отчёта в нужном поясе используй `created_at AT TIME ZONE 'Europe/Moscow'`.",
+        "tags": [
+          "задача",
+          "даты"
+        ]
+      },
+      {
+        "id": "sql-59",
+        "front": "Что такое `LATERAL JOIN`?",
+        "back": "Обычный подзапрос в `FROM` не видит колонки соседних таблиц. `LATERAL` разрешает подзапросу ссылаться на строки, стоящие **левее**, — он выполняется для каждой из них, как цикл:\n\n```sql\n-- три последних заказа каждого пользователя\nSELECT u.name, o.id, o.total\nFROM users u\nLEFT JOIN LATERAL (\n  SELECT id, total\n  FROM orders\n  WHERE orders.user_id = u.id\n  ORDER BY created_at DESC\n  LIMIT 3\n) o ON true;\n```\n\n- `LEFT JOIN LATERAL … ON true` оставляет пользователей без заказов (с `NULL`);\n- `CROSS JOIN LATERAL` выбросит их.\n\nГде полезен: «топ-N в каждой группе», несколько колонок из одного коррелированного подзапроса, вызов функций, которые возвращают набор строк (`jsonb_array_elements`, `unnest`), для каждой строки.\n\nС индексом `orders (user_id, created_at DESC)` такой запрос очень быстрый: для каждого пользователя читаются ровно три записи.",
+        "tags": [
+          "postgres",
+          "lateral"
+        ]
       }
     ]
   },
@@ -1733,7 +2572,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "prisma-09",
         "front": "Как создать запись, если её нет, и атомарно увеличить счётчик?",
-        "back": "```ts\nawait prisma.stat.upsert({\n  where: { userId },\n  update: { views: { increment: 1 } },\n  create: { userId, views: 1 },\n});\n```\n\n`increment`, `decrement`, `multiply` выполняются в БД атомарно — без гонки «прочитал → прибавил → записал». В `where` у `upsert` нужно уникальное поле.",
+        "back": "```ts\nawait prisma.stat.upsert({\n  where: { userId },\n  update: { views: { increment: 1 } },\n  create: { userId, views: 1 },\n});\n```\n\n- `increment`, `decrement`, `multiply`, `divide` выполняются **в БД** одним `UPDATE … SET views = views + 1` — без гонки «прочитал → прибавил → записал».\n- В `where` у `upsert` нужно уникальное поле (`@id` или `@unique`).\n- Если запрос подходит под условия, Prisma превращает `upsert` в нативный `INSERT … ON CONFLICT` — тогда он атомарный и не падает при параллельных вызовах. Иначе возможна ошибка уникальности P2002 при гонке, и запрос стоит повторить.\n\nНеправильно: `const s = await findUnique(); await update({ data: { views: s.views + 1 } })` — два параллельных запроса потеряют одно увеличение.",
         "tags": [
           "запросы",
           "upsert"
@@ -1768,7 +2607,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "prisma-13",
         "front": "Когда нужно запускать `prisma generate`?",
-        "back": "После каждого изменения схемы: команда пересоздаёт клиент и типы.\n\nВ CI и на хостинге — при установке или сборке (`postinstall` или `\"build\": \"prisma generate && next build\"`). Иначе в рантайме окажется старый клиент без новых полей.",
+        "back": "После каждого изменения `schema.prisma`: команда пересоздаёт клиент и типы. Без неё TypeScript не знает о новых полях и моделях, а в рантайме клиент ничего не знает о новых колонках.\n\n- Локально — после правки схемы и после `git pull`, если схему поменял коллега.\n- В CI и на хостинге — при установке или сборке: `\"postinstall\": \"prisma generate\"` или `\"build\": \"prisma generate && next build\"`. Иначе соберётся старый клиент.\n\nВ Prisma 7 клиент генерируется в папку проекта (`output` в генераторе), поэтому её обычно добавляют в `.gitignore` и всегда генерируют при сборке, а не коммитят.",
         "tags": [
           "cli"
         ]
@@ -1858,6 +2697,159 @@ export const SEED: SeedDeck[] = [
           "миграции",
           "команда"
         ]
+      },
+      {
+        "id": "prisma-24",
+        "front": "Как описать связь один-к-одному?",
+        "back": "Внешний ключ на одной стороне и `@unique` на нём — чтобы на одного пользователя был максимум один профиль:\n\n```prisma\nmodel User {\n  id      Int      @id @default(autoincrement())\n  email   String   @unique\n  profile Profile?\n}\n\nmodel Profile {\n  id     Int    @id @default(autoincrement())\n  bio    String\n  userId Int    @unique\n  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n}\n```\n\n- Сторона с `fields` и `references` хранит внешний ключ в таблице (`Profile.userId`).\n- На другой стороне поле `profile Profile?` существует только в Prisma Client — колонки в `User` нет.\n- `Profile?` — у пользователя профиля может не быть. Обязательным его на стороне без ключа сделать нельзя.\n\nКакую сторону выбрать для ключа: ту, которая не может существовать без другой. Профиль без пользователя не нужен — ключ в профиле.",
+        "tags": [
+          "схема",
+          "связи"
+        ]
+      },
+      {
+        "id": "prisma-25",
+        "front": "Как описать связь модели с самой собой (дерево категорий, подписчики)?",
+        "back": "Self-relation — связь, где обе стороны — одна и та же модель. Её нужно **назвать** в `@relation`, чтобы Prisma поняла, какие поля составляют пару:\n\n```prisma\nmodel Category {\n  id       Int        @id @default(autoincrement())\n  name     String\n  parentId Int?\n  parent   Category?  @relation(\"CategoryTree\", fields: [parentId], references: [id])\n  children Category[] @relation(\"CategoryTree\")\n}\n```\n\nЗапрос дерева на два уровня:\n\n```ts\nconst roots = await prisma.category.findMany({\n  where: { parentId: null },\n  include: { children: { include: { children: true } } },\n});\n```\n\nПодписчики — это многие-ко-многим на себя:\n\n```prisma\nmodel User {\n  id        Int    @id @default(autoincrement())\n  followers User[] @relation(\"Follows\")\n  following User[] @relation(\"Follows\")\n}\n```\n\nГлубокое дерево неизвестной глубины Prisma за один запрос не загрузит — для этого нужен рекурсивный CTE через `$queryRaw`.",
+        "tags": [
+          "схема",
+          "связи"
+        ]
+      },
+      {
+        "id": "prisma-26",
+        "front": "Как настроить, что происходит со связанными записями при удалении?",
+        "back": "Через `onDelete` в `@relation` — Prisma создаст соответствующий внешний ключ в базе:\n\n```prisma\nmodel Comment {\n  id       Int   @id @default(autoincrement())\n  postId   Int\n  post     Post  @relation(fields: [postId], references: [id], onDelete: Cascade)\n  authorId Int?\n  author   User? @relation(fields: [authorId], references: [id], onDelete: SetNull)\n}\n```\n\nВарианты: `Cascade` (удалить вместе с родителем), `SetNull` (обнулить ссылку, поле должно быть необязательным), `Restrict` и `NoAction` (запретить удаление, пока есть дети), `SetDefault`.\n\nПо умолчанию для обязательной связи — `Restrict`, для необязательной — `SetNull`.\n\nЧастая ошибка: удаляют пользователя и получают ошибку внешнего ключа, потому что у него остались посты, а `onDelete` не указан. Решение — явно выбрать поведение в схеме и сделать миграцию, а не удалять детей вручную перед каждым удалением.",
+        "tags": [
+          "схема",
+          "удаление"
+        ]
+      },
+      {
+        "id": "prisma-27",
+        "front": "Как создать запись вместе со связанными одним запросом?",
+        "back": "Вложенные записи (nested writes) — Prisma выполнит всё в **одной транзакции**:\n\n```ts\nconst user = await prisma.user.create({\n  data: {\n    email: \"ann@example.com\",\n    profile: { create: { bio: \"Фронтенд\" } },\n    posts: {\n      create: [{ title: \"Первый пост\" }, { title: \"Второй пост\" }],\n    },\n    tags: {\n      connectOrCreate: {\n        where: { name: \"react\" },\n        create: { name: \"react\" },\n      },\n    },\n  },\n  include: { posts: true, profile: true },\n});\n```\n\n- `create` — создать связанную запись;\n- `connect` — привязать существующую по уникальному полю: `{ connect: { id: 5 } }`;\n- `connectOrCreate` — привязать, если есть, иначе создать.\n\nЕсли любая часть упадёт (например, email уже занят), не сохранится ничего. Это проще и надёжнее, чем создавать записи по очереди и передавать id вручную.",
+        "tags": [
+          "запросы",
+          "nested writes"
+        ]
+      },
+      {
+        "id": "prisma-28",
+        "front": "Как изменить связи многие-ко-многим: добавить, убрать, заменить?",
+        "back": "В `update` у поля-связи есть операции `connect`, `disconnect` и `set`:\n\n```ts\n// добавить теги 3 и 4, убрать тег 1\nawait prisma.post.update({\n  where: { id: postId },\n  data: {\n    tags: {\n      connect: [{ id: 3 }, { id: 4 }],\n      disconnect: [{ id: 1 }],\n    },\n  },\n});\n\n// заменить все теги поста на переданный список\nawait prisma.post.update({\n  where: { id: postId },\n  data: { tags: { set: tagIds.map((id) => ({ id })) } },\n});\n\n// убрать все теги\nawait prisma.post.update({ where: { id: postId }, data: { tags: { set: [] } } });\n```\n\n`set` удобен для формы с мультиселектом: не нужно вычислять, что добавили и что убрали.\n\nДля связи один-ко-многим `disconnect` работает только если поле-ссылка необязательное — иначе запись без родителя существовать не может.",
+        "tags": [
+          "запросы",
+          "many-to-many"
+        ]
+      },
+      {
+        "id": "prisma-29",
+        "front": "Что будет, если `update` или `delete` не найдут запись? Чем отличаются `updateMany` и `deleteMany`?",
+        "back": "- `update` и `delete` работают с **одной** записью по уникальному полю. Если её нет — бросают ошибку с кодом **P2025** («Record not found»).\n- `updateMany` и `deleteMany` работают с **набором** по любому фильтру и не падают, если ничего не нашлось, — возвращают `{ count: 0 }`.\n\n```ts\nconst { count } = await prisma.post.updateMany({\n  where: { id: postId, authorId: userId }, // заодно проверка владельца\n  data: { title },\n});\nif (count === 0) throw new Error(\"Пост не найден или нет доступа\");\n```\n\nЭтот приём удобен для проверки прав: условие на владельца в `where` выполняется атомарно, без отдельного `findFirst`.\n\nМинус `updateMany`: он не возвращает сами записи. Для PostgreSQL есть `updateManyAndReturn` — он вернёт обновлённые строки.",
+        "tags": [
+          "запросы",
+          "ошибки"
+        ]
+      },
+      {
+        "id": "prisma-30",
+        "front": "Как обрабатывать ошибки Prisma: дубль email, запись не найдена?",
+        "back": "Ошибки базы приходят как `PrismaClientKnownRequestError` с кодом:\n\n```ts\nimport { Prisma } from \"@/generated/prisma/client\";\n\ntry {\n  await prisma.user.create({ data: { email } });\n} catch (e) {\n  if (e instanceof Prisma.PrismaClientKnownRequestError) {\n    if (e.code === \"P2002\") return { error: \"Этот email уже зарегистрирован\" };\n    if (e.code === \"P2025\") return { error: \"Запись не найдена\" };\n  }\n  throw e; // неизвестную ошибку не глотаем\n}\n```\n\nЧастые коды:\n\n- **P2002** — нарушено уникальное ограничение;\n- **P2025** — нужная для операции запись не найдена;\n- **P2003** — нарушен внешний ключ (например, удаление родителя, у которого есть дети).\n\nЛучше ловить P2002, чем заранее проверять `findUnique`: между проверкой и вставкой другой запрос может успеть создать такую же запись. Уникальный индекс в базе — единственная надёжная гарантия.",
+        "tags": [
+          "ошибки",
+          "обработка"
+        ]
+      },
+      {
+        "id": "prisma-31",
+        "front": "Как посчитать связанные записи и отсортировать по их количеству?",
+        "back": "Через специальное поле `_count`:\n\n```ts\nconst users = await prisma.user.findMany({\n  select: {\n    id: true,\n    name: true,\n    _count: { select: { posts: true, comments: true } },\n  },\n  orderBy: { posts: { _count: \"desc\" } },\n  take: 10,\n});\n// [{ id: 1, name: \"Аня\", _count: { posts: 12, comments: 40 } }, ...]\n```\n\nМожно считать с условием:\n\n```ts\n_count: { select: { posts: { where: { published: true } } } }\n```\n\nPrisma посчитает всё на стороне базы, без загрузки самих постов. Неправильный вариант — `include: { posts: true }` и `posts.length` в коде: загрузятся все посты всех пользователей только ради числа.",
+        "tags": [
+          "запросы",
+          "агрегаты"
+        ]
+      },
+      {
+        "id": "prisma-32",
+        "front": "Как сделать `GROUP BY` и агрегаты в Prisma?",
+        "back": "`aggregate` — агрегаты по всей выборке:\n\n```ts\nconst stats = await prisma.order.aggregate({\n  where: { status: \"PAID\" },\n  _sum: { total: true },\n  _avg: { total: true },\n  _count: true,\n});\n// { _sum: { total: 15000 }, _avg: { total: 500 }, _count: 30 }\n```\n\n`groupBy` — агрегаты по группам, с `having` и сортировкой:\n\n```ts\nconst byUser = await prisma.order.groupBy({\n  by: [\"userId\"],\n  where: { status: \"PAID\" },\n  _sum: { total: true },\n  _count: { _all: true },\n  having: { total: { _sum: { gt: 1000 } } },\n  orderBy: { _sum: { total: \"desc\" } },\n});\n```\n\nОграничение: `groupBy` группирует только по полям самой модели, без связей. Для отчётов с `JOIN`, оконными функциями и группировкой по месяцу используют `$queryRaw` или представление в базе.",
+        "tags": [
+          "запросы",
+          "агрегаты"
+        ]
+      },
+      {
+        "id": "prisma-33",
+        "front": "Как искать без учёта регистра в Prisma?",
+        "back": "В фильтрах строк добавляют `mode: \"insensitive\"`:\n\n```ts\nconst products = await prisma.product.findMany({\n  where: {\n    OR: [\n      { name: { contains: query, mode: \"insensitive\" } },\n      { description: { contains: query, mode: \"insensitive\" } },\n    ],\n  },\n});\n```\n\nВ PostgreSQL это превращается в `ILIKE '%query%'`. Есть также `startsWith`, `endsWith`, `equals`.\n\nЧто важно знать:\n\n- `mode` поддерживается для PostgreSQL и MongoDB; в MySQL регистр обычно и так не учитывается из-за collation;\n- `contains` даёт `LIKE` с `%` в начале — обычный индекс не работает, на большой таблице нужен GIN-индекс с `pg_trgm` (через миграцию с SQL);\n- значение передаётся параметром, поэтому SQL-инъекции здесь нет.\n\nДля настоящего полнотекстового поиска с морфологией лучше `$queryRaw` с `to_tsvector` или внешний поисковый движок.",
+        "tags": [
+          "запросы",
+          "поиск"
+        ]
+      },
+      {
+        "id": "prisma-34",
+        "front": "Какие проблемы с `Decimal`, `BigInt` и `DateTime` при отдаче данных клиенту?",
+        "back": "Prisma возвращает не только примитивы:\n\n- `Decimal` → объект `Prisma.Decimal` (decimal.js) — для денег, без ошибок float;\n- `BigInt` → JS `bigint`;\n- `DateTime` → `Date`.\n\nПроблемы:\n\n```ts\nJSON.stringify({ id: 1n });   // TypeError: Do not know how to serialize a BigInt\n```\n\n- `bigint` не сериализуется в JSON — в Route Handler ответ упадёт;\n- `Decimal` — экземпляр класса, а в клиентский компонент Next.js можно передать только простые объекты; при `JSON.stringify` он превратится в строку;\n- `Date` в Server → Client Components передаётся нормально, но в JSON становится строкой ISO — на клиенте её нужно снова превратить в дату.\n\nРешение — явно преобразовать данные на границе (DTO):\n\n```ts\nconst dto = { ...product, price: product.price.toString(), id: product.id.toString() };\n```\n\nЦену удобно хранить в копейках как `Int` — тогда `Decimal` вообще не нужен.",
+        "tags": [
+          "типы",
+          "сериализация"
+        ]
+      },
+      {
+        "id": "prisma-35",
+        "front": "Как заполнить базу начальными данными (seed) в Prisma 7?",
+        "back": "Пишут скрипт и указывают команду его запуска в `prisma.config.ts`:\n\n```ts\n// prisma.config.ts\nimport \"dotenv/config\";\nimport { defineConfig, env } from \"prisma/config\";\n\nexport default defineConfig({\n  schema: \"prisma/schema.prisma\",\n  migrations: {\n    path: \"prisma/migrations\",\n    seed: \"tsx prisma/seed.ts\",\n  },\n  datasource: { url: env(\"DATABASE_URL\") },\n});\n```\n\n```ts\n// prisma/seed.ts\nimport { prisma } from \"../src/lib/prisma\";\n\nawait prisma.category.createMany({\n  data: [{ name: \"Еда\" }, { name: \"Транспорт\" }],\n  skipDuplicates: true,\n});\n```\n\nЗапуск — `npx prisma db seed`. В Prisma 7 `migrate dev` и `migrate reset` больше не запускают сид сами — его вызывают явно.\n\nХороший сид **идемпотентный**: повторный запуск не создаёт дубли (`upsert`, `skipDuplicates`). Сиды — для справочников и тестовых данных разработки; в продакшен-базу справочники обычно добавляют миграцией.",
+        "tags": [
+          "cli",
+          "seed"
+        ]
+      },
+      {
+        "id": "prisma-36",
+        "front": "Как описать две связи между одними и теми же моделями (автор и редактор поста)?",
+        "back": "Если между двумя моделями больше одной связи, Prisma не может сама понять, какие поля образуют пару. Каждой связи дают имя:\n\n```prisma\nmodel User {\n  id           Int    @id @default(autoincrement())\n  writtenPosts Post[] @relation(\"WrittenPosts\")\n  editedPosts  Post[] @relation(\"EditedPosts\")\n}\n\nmodel Post {\n  id       Int   @id @default(autoincrement())\n  title    String\n  authorId Int\n  author   User  @relation(\"WrittenPosts\", fields: [authorId], references: [id])\n  editorId Int?\n  editor   User? @relation(\"EditedPosts\", fields: [editorId], references: [id])\n}\n```\n\nИмя в `@relation(\"…\")` должно совпадать на обеих сторонах. Без имён `prisma validate` выдаст ошибку о неоднозначной связи.\n\nЗапрос:\n\n```ts\nconst post = await prisma.post.findUnique({\n  where: { id },\n  include: { author: true, editor: true },\n});\n```",
+        "tags": [
+          "схема",
+          "связи"
+        ]
+      },
+      {
+        "id": "prisma-37",
+        "front": "Как сделать уникальность по нескольким полям и искать по ней?",
+        "back": "Атрибут `@@unique` на уровне модели:\n\n```prisma\nmodel Like {\n  id     Int @id @default(autoincrement())\n  userId Int\n  postId Int\n\n  @@unique([userId, postId])\n}\n```\n\nТеперь пользователь не сможет лайкнуть пост дважды — это гарантирует уникальный индекс в базе.\n\nИскать по составному ключу через `findUnique` — Prisma склеивает имена полей через `_`:\n\n```ts\nconst like = await prisma.like.findUnique({\n  where: { userId_postId: { userId, postId } },\n});\n\nawait prisma.like.upsert({\n  where: { userId_postId: { userId, postId } },\n  create: { userId, postId },\n  update: {},\n});\n```\n\nИмя можно задать самому: `@@unique([userId, postId], name: \"userPost\")`. Для связующих таблиц часто вместо `id` делают составной первичный ключ `@@id([userId, postId])` — он работает так же.",
+        "tags": [
+          "схема",
+          "unique"
+        ]
+      },
+      {
+        "id": "prisma-38",
+        "front": "Что делают `prisma db pull` и Prisma Studio?",
+        "back": "**`prisma db pull`** (интроспекция) читает структуру существующей базы и генерирует по ней `schema.prisma`. Нужен, когда:\n\n- подключаешь Prisma к базе, которую создали без неё;\n- кто-то поменял базу вручную, и нужно синхронизировать схему.\n\nПосле `db pull` модели обычно переименовывают в PascalCase через `@@map(\"users\")` и `@map(\"created_at\")`, чтобы в коде были привычные имена, а в базе остались прежние.\n\n**Prisma Studio** (`npx prisma studio`) — визуальный редактор данных в браузере: посмотреть таблицы, отфильтровать, поправить запись, проверить связи. Удобно при разработке вместо SQL-клиента.\n\nВажно: `db pull` перезаписывает схему. Если в проекте есть миграции, ручные изменения в базе лучше оформить миграцией, а не подтягивать в схему, — иначе история миграций разойдётся с реальной базой (drift).",
+        "tags": [
+          "cli",
+          "интроспекция"
+        ]
+      },
+      {
+        "id": "prisma-39",
+        "front": "Как увидеть SQL, который генерирует Prisma?",
+        "back": "Включить логирование при создании клиента:\n\n```ts\nexport const prisma = new PrismaClient({\n  adapter,\n  log: [\"query\", \"warn\", \"error\"],\n});\n```\n\nЧтобы видеть ещё параметры и длительность — логирование через события:\n\n```ts\nconst prisma = new PrismaClient({\n  adapter,\n  log: [{ emit: \"event\", level: \"query\" }],\n});\n\nprisma.$on(\"query\", (e) => {\n  console.log(e.query, e.params, `${e.duration} мс`);\n});\n```\n\nЗачем: найти N+1 (десятки одинаковых запросов подряд), посмотреть, какой SQL получился из сложного `include`, и взять медленный запрос для `EXPLAIN ANALYZE`.\n\nВ продакшене логирование всех запросов включают осторожно: это много записей, а в параметрах могут оказаться личные данные.",
+        "tags": [
+          "отладка",
+          "логи"
+        ]
+      },
+      {
+        "id": "prisma-40",
+        "front": "Как сделать оптимистичную блокировку в Prisma?",
+        "back": "Добавить в модель поле версии и обновлять запись только если версия не изменилась:\n\n```prisma\nmodel Product {\n  id      Int @id @default(autoincrement())\n  stock   Int\n  version Int @default(0)\n}\n```\n\n```ts\nconst product = await prisma.product.findUniqueOrThrow({ where: { id } });\n\nconst { count } = await prisma.product.updateMany({\n  where: { id, version: product.version },\n  data: { stock: product.stock - qty, version: { increment: 1 } },\n});\n\nif (count === 0) {\n  throw new Error(\"Товар только что изменили — обновите страницу\");\n}\n```\n\nИспользуется `updateMany`, потому что в его `where` можно добавить не только уникальное поле. Если кто-то успел обновить запись между чтением и записью, версия уже другая, `count` будет `0`, и чужое изменение не перезапишется.\n\nПодходит для форм редактирования, где два менеджера могут одновременно править одну карточку. Для простых счётчиков достаточно атомарного `{ decrement: qty }`.",
+        "tags": [
+          "конкурентность",
+          "блокировки"
+        ]
       }
     ]
   },
@@ -1880,7 +2872,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "out-02",
         "front": "Что выведет код?\n\n```js\nasync function f() {\n  console.log(1);\n  await null;\n  console.log(2);\n}\nconsole.log(3);\nf();\nconsole.log(4);\n```",
-        "back": "`3 1 4 2`\n\nТело async-функции до первого `await` выполняется **синхронно**, поэтому `1` печатается сразу после `3`. Всё после `await` уходит в микрозадачу и выполняется, когда опустеет стек, — после `4`.",
+        "back": "`3 1 4 2`\n\nТело async-функции до первого `await` выполняется **синхронно**, как у обычной функции, поэтому `1` печатается сразу после `3`. На `await` функция приостанавливается и возвращает промис, а продолжение (`console.log(2)`) уходит в очередь микрозадач. Она выполнится, когда опустеет стек вызовов, — то есть после `4`.\n\n`await null` ведёт себя как `await Promise.resolve(null)`: даже если значение не промис, продолжение всё равно асинхронное.",
         "tags": [
           "async",
           "event-loop"
@@ -1897,7 +2889,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "out-04",
         "front": "Что выведет код?\n\n```js\nconst p = new Promise((resolve) => {\n  console.log(1);\n  resolve(2);\n  console.log(3);\n});\np.then((v) => console.log(v));\nconsole.log(4);\n```",
-        "back": "`1 3 4 2`\n\nФункция-исполнитель `new Promise(...)` вызывается **синхронно**. `resolve` не прерывает её — `3` всё равно печатается. Колбэк `.then` всегда асинхронный (микрозадача), даже если промис уже выполнен.",
+        "back": "`1 3 4 2`\n\n- Функция-исполнитель `new Promise(...)` вызывается **синхронно**, прямо в конструкторе.\n- `resolve` не прерывает её, как `return`, — `3` всё равно печатается. Повторный `resolve` или `reject` после первого игнорируется.\n- Колбэк `.then` всегда асинхронный (микрозадача), даже если промис уже выполнен, поэтому `2` идёт после синхронного `4`.\n\nИз-за синхронного исполнителя исключение внутри него не вылетает наружу, а превращается в reject промиса.",
         "tags": [
           "промисы"
         ]
@@ -1966,7 +2958,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "out-12",
         "front": "Что выведет код?\n\n```js\nconst a = { x: 1 };\nconst b = a;\nb.x = 2;\nconst c = { ...a };\nc.x = 3;\nconsole.log(a.x, b.x, c.x);\n```",
-        "back": "`2 2 3`\n\n`b` — та же ссылка, что и `a`, поэтому изменение через `b` видно в `a`. Spread создаёт **новый** объект, и `c` уже независим (но только на верхнем уровне — вложенные объекты остались бы общими).",
+        "back": "`2 2 3`\n\n- Объекты хранятся по ссылке: `b = a` копирует ссылку, а не объект. Изменение через `b` видно в `a`.\n- Spread создаёт **новый** объект, поэтому `c` уже независим.\n- Но копия поверхностная: вложенные объекты остаются общими. Если бы было `a = { x: { y: 1 } }`, то `c.x.y = 3` изменило бы и `a.x.y`.\n\nГлубокую копию даёт `structuredClone(a)`. А `const` запрещает переприсвоить переменную, но не менять объект, на который она указывает.",
         "tags": [
           "объекты",
           "ссылки"
@@ -2009,7 +3001,7 @@ export const SEED: SeedDeck[] = [
       {
         "id": "out-17",
         "front": "Какие типы выведет TypeScript?\n\n```ts\nconst arr = [1, \"a\"];\nconst tup = [1, \"a\"] as const;\nlet s = \"hi\";\nconst c = \"hi\";\n```",
-        "back": "- `arr`: `(string | number)[]`\n- `tup`: `readonly [1, \"a\"]`\n- `s`: `string` — `let` можно переприсвоить, поэтому тип расширяется (widening)\n- `c`: `\"hi\"` — `const` не изменится, остаётся литерал",
+        "back": "- `arr`: `(string | number)[]` — массив можно менять, поэтому TS берёт общий тип элементов\n- `tup`: `readonly [1, \"a\"]` — `as const` фиксирует длину, порядок и литералы\n- `s`: `string` — `let` можно переприсвоить, поэтому тип расширяется (widening)\n- `c`: `\"hi\"` — `const` не изменится, остаётся литерал\n\nРасширение работает и в объектах: у `const o = { method: \"GET\" }` поле получит тип `string`, потому что его можно поменять. Поэтому передать `o` в функцию, которая ждёт `{ method: \"GET\" | \"POST\" }`, не получится. Лечится `as const` или `satisfies`.",
         "tags": [
           "typescript",
           "вывод типов"
@@ -2023,6 +3015,205 @@ export const SEED: SeedDeck[] = [
           "typescript",
           "union",
           "ловушка"
+        ]
+      },
+      {
+        "id": "out-19",
+        "front": "Что выведет код?\n\n```js\nconsole.log([\"1\", \"2\", \"3\"].map(parseInt));\n```",
+        "back": "`[ 1, NaN, NaN ]`\n\n`map` передаёт колбэку три аргумента: элемент, **индекс** и массив. А `parseInt` принимает второй аргумент — основание системы счисления:\n\n- `parseInt(\"1\", 0)` — основание 0 значит «по умолчанию», получается `1`;\n- `parseInt(\"2\", 1)` — основание 1 недопустимо → `NaN`;\n- `parseInt(\"3\", 2)` — в двоичной системе нет цифры 3 → `NaN`.\n\nПравильно: `.map(Number)` или `.map((s) => parseInt(s, 10))`. Тот же подвох с любой функцией, у которой есть необязательный второй параметр.",
+        "tags": [
+          "массивы",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "out-20",
+        "front": "Что выведет код?\n\n```js\nconsole.log(null == 0);\nconsole.log(null >= 0);\nconsole.log(null == undefined);\nconsole.log(undefined == 0);\n```",
+        "back": "`false`, `true`, `true`, `false`\n\n- `==` для `null` работает по особому правилу: `null` равен только `undefined` (и сам себе), поэтому `null == 0` — `false`.\n- Операторы сравнения `>`, `<`, `>=` приводят `null` к числу `0`, поэтому `null >= 0` → `0 >= 0` → `true`.\n- `undefined` при приведении к числу даёт `NaN`, а любое сравнение с `NaN` ложно.\n\nПолучается, что `null` не больше нуля, не равен нулю, но «больше или равен». Поэтому со значениями, которые могут быть `null`, используют `===` и явные проверки.",
+        "tags": [
+          "приведение типов",
+          "null"
+        ]
+      },
+      {
+        "id": "out-21",
+        "front": "Что выведет код?\n\n```js\nconsole.log(typeof NaN);\nconsole.log(typeof []);\nconsole.log(typeof null);\nconsole.log(typeof function () {});\nconsole.log(typeof class {});\nconsole.log(Array.isArray([]));\n```",
+        "back": "`number`, `object`, `object`, `function`, `function`, `true`\n\n- `NaN` — специальное значение **числового** типа («не число» в смысле результата операции).\n- Массив — это объект, `typeof` его не отличает. Для проверки есть `Array.isArray`.\n- `typeof null === \"object\"` — историческая ошибка первой версии JavaScript, которую не исправили ради совместимости. Проверяют так: `value === null`.\n- Класс — это функция-конструктор.\n\nНадёжная проверка «простого объекта»: `value !== null && typeof value === \"object\" && !Array.isArray(value)`.",
+        "tags": [
+          "типы",
+          "typeof"
+        ]
+      },
+      {
+        "id": "out-22",
+        "front": "Что выведет код?\n\n```js\nconsole.log(sum(2, 3));\nconsole.log(typeof multiply);\n\nfunction sum(a, b) {\n  return a + b;\n}\n\nvar multiply = function (a, b) {\n  return a * b;\n};\n```",
+        "back": "`5`, затем `undefined`\n\n- **Function declaration** всплывает целиком вместе с телом — её можно вызвать до объявления.\n- **Function expression**, присвоенное через `var`, ведёт себя как переменная: всплывает только объявление `multiply` со значением `undefined`. Вызов `multiply(2, 3)` в этом месте упал бы с `TypeError: multiply is not a function`.\n- Если бы было `const multiply = …`, обращение к переменной до объявления дало бы `ReferenceError` (временная мёртвая зона), и даже `typeof` не спас бы.",
+        "tags": [
+          "hoisting",
+          "функции"
+        ]
+      },
+      {
+        "id": "out-23",
+        "front": "Что выведет код?\n\n```js\nasync function getValue() {\n  return 1;\n}\n\nconst result = getValue();\nconsole.log(result instanceof Promise);\nresult.then((v) => console.log(\"then\", v));\nconsole.log(\"sync\");\n```",
+        "back": "`true`, `sync`, `then 1`\n\n`async`-функция **всегда** возвращает промис, даже если внутри `return 1`, — значение оборачивается в `Promise.resolve(1)`. Если внутри бросить ошибку, промис будет отклонён.\n\nКолбэк `.then` — микрозадача: он выполнится только после текущего синхронного кода, поэтому `sync` печатается раньше.\n\nЧастая ошибка: `if (isAdmin())` для async-функции. Промис — объект, а значит, всегда truthy, и проверка проходит у всех пользователей. Нужно `if (await isAdmin())`.",
+        "tags": [
+          "async",
+          "промисы"
+        ]
+      },
+      {
+        "id": "out-24",
+        "front": "Что выведет код?\n\n```js\ntry {\n  setTimeout(() => {\n    throw new Error(\"boom\");\n  }, 0);\n} catch (e) {\n  console.log(\"caught\", e.message);\n}\nconsole.log(\"after\");\n```",
+        "back": "`after`, затем **непойманная** ошибка `Error: boom`.\n\n`try/catch` ловит только ошибки, которые произошли, пока выполнялся код внутри `try`. `setTimeout` лишь регистрирует колбэк и сразу возвращает управление. К моменту, когда колбэк выполнится, `try/catch` давно завершён — у ошибки другой стек вызовов.\n\nКак правильно: `try/catch` внутри самого колбэка или промис с `await`:\n\n```js\nconst wait = (ms) => new Promise((r) => setTimeout(r, ms));\ntry {\n  await wait(0);\n  throw new Error(\"boom\");\n} catch (e) {\n  console.log(\"caught\", e.message); // поймается\n}\n```",
+        "tags": [
+          "ошибки",
+          "event-loop"
+        ]
+      },
+      {
+        "id": "out-25",
+        "front": "Что выведет код?\n\n```js\nasync function withoutAwait() {\n  try {\n    return Promise.reject(new Error(\"fail\"));\n  } catch {\n    return \"caught\";\n  }\n}\n\nasync function withAwait() {\n  try {\n    return await Promise.reject(new Error(\"fail\"));\n  } catch {\n    return \"caught\";\n  }\n}\n\nwithoutAwait().then(console.log, (e) => console.log(\"rejected:\", e.message));\nwithAwait().then(console.log, (e) => console.log(\"rejected:\", e.message));\n```",
+        "back": "```\ncaught\nrejected: fail\n```\n\n- В `withoutAwait` функция просто **возвращает** отклонённый промис. Внутри `try` ошибки не происходит, `catch` не срабатывает, и наружу уходит reject.\n- В `withAwait` `await` дожидается промиса **внутри** `try`, ошибка выбрасывается там же и попадает в `catch`.\n\nПорядок вывода: `caught` раньше, потому что возврат промиса из async-функции требует нескольких дополнительных микрозадач.\n\nПравило: внутри `try` пиши `return await`, если хочешь, чтобы `catch` и `finally` обработали ошибку промиса.",
+        "tags": [
+          "async",
+          "ошибки",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "out-26",
+        "front": "Что выведет код?\n\n```js\nconst cache = {};\nconst a = { id: 1 };\nconst b = { id: 2 };\n\ncache[a] = \"first\";\ncache[b] = \"second\";\n\nconsole.log(cache[a]);\nconsole.log(Object.keys(cache));\n```",
+        "back": "`second`, затем `[ '[object Object]' ]`\n\nКлючи обычного объекта — только строки (и символы). Объект в роли ключа приводится к строке через `toString()`, и **любой** простой объект превращается в `\"[object Object]\"`. Поэтому `a` и `b` дают один и тот же ключ, и второе присваивание перезаписывает первое.\n\nЕсли ключами должны быть объекты, используй `Map` (или `WeakMap`, чтобы не мешать сборке мусора):\n\n```js\nconst cache = new Map();\ncache.set(a, \"first\");\ncache.set(b, \"second\");\ncache.get(a); // \"first\"\n```",
+        "tags": [
+          "объекты",
+          "ключи"
+        ]
+      },
+      {
+        "id": "out-27",
+        "front": "Что выведет код?\n\n```js\nconst arr = [1, 2, 3, 4];\narr.length = 2;\nconsole.log(arr);\n\narr[4] = 5;\nconsole.log(arr.length);\n\ndelete arr[0];\nconsole.log(arr.length, arr[0]);\n```",
+        "back": "```\n[ 1, 2 ]\n5\n5 undefined\n```\n\n- `length` можно записывать: уменьшение обрезает массив, лишние элементы удаляются.\n- Запись по индексу 4 растягивает массив до длины 5. Индексы 2 и 3 становятся **дырами** (empty) — элементов там нет совсем.\n- `delete arr[0]` удаляет элемент, но **не сдвигает** массив и не меняет длину — на месте остаётся дыра.\n\nДыры ведут себя по-разному: `forEach` и `map` их пропускают, а `for...of` и spread дают `undefined`. Удалять элементы нужно через `splice` или `filter`.",
+        "tags": [
+          "массивы"
+        ]
+      },
+      {
+        "id": "out-28",
+        "front": "Что выведет код?\n\n```js\nconsole.log({} === {});\nconsole.log([1] == 1);\nconsole.log([1, 2] == \"1,2\");\nconsole.log([] == false);\n```",
+        "back": "`false`, `true`, `true`, `true`\n\n- Объекты сравниваются **по ссылке**: два литерала `{}` — два разных объекта, даже если они одинаковые внутри.\n- При `==` между объектом и примитивом объект приводится к примитиву. Массив превращается в строку через `join(\",\")`: `[1]` → `\"1\"`, `[1, 2]` → `\"1,2\"`.\n- `[] == false`: массив → `\"\"`, `false` → `0`, `\"\"` → `0`, получается `0 == 0`.\n\nПри этом `if ([])` выполнится — пустой массив **truthy**. Отсюда правило: всегда `===`. А для сравнения объектов по содержимому нужна своя функция или библиотека (`isEqual` из lodash).",
+        "tags": [
+          "сравнение",
+          "приведение типов"
+        ]
+      },
+      {
+        "id": "out-29",
+        "front": "Что выведет код?\n\n```js\nclass User {\n  name = \"Аня\";\n\n  getNameArrow = () => this.name;\n\n  getName() {\n    return this.name;\n  }\n}\n\nconst user = new User();\nconst { getNameArrow, getName } = user;\n\nconsole.log(getNameArrow());\ntry {\n  console.log(getName());\n} catch (e) {\n  console.log(e.constructor.name);\n}\n```",
+        "back": "`Аня`, затем `TypeError`\n\n- `getNameArrow` — **поле класса** со стрелочной функцией. Оно создаётся в конструкторе, и `this` в стрелке навсегда указывает на экземпляр. Деструктуризация ему не мешает.\n- `getName` — обычный метод из прототипа. После деструктуризации он вызывается без объекта, `this` равен `undefined` (тело класса всегда в строгом режиме), и чтение `this.name` бросает `TypeError`.\n\nОтсюда классический совет для обработчиков событий в классовых компонентах: стрелки в полях или `bind` в конструкторе. Минус стрелок-полей: у каждого экземпляра своя копия функции, а не одна общая в прототипе.",
+        "tags": [
+          "this",
+          "классы"
+        ]
+      },
+      {
+        "id": "out-30",
+        "front": "Что выведет код?\n\n```js\nasync function first() {\n  console.log(\"first start\");\n  await second();\n  console.log(\"first end\");\n}\n\nasync function second() {\n  console.log(\"second\");\n}\n\nconsole.log(\"script start\");\nsetTimeout(() => console.log(\"timeout\"), 0);\nfirst();\nnew Promise((resolve) => {\n  console.log(\"promise\");\n  resolve();\n}).then(() => console.log(\"then\"));\nconsole.log(\"script end\");\n```",
+        "back": "```\nscript start\nfirst start\nsecond\npromise\nscript end\nfirst end\nthen\ntimeout\n```\n\n1. Синхронно: `script start`, вызов `first` печатает `first start` и синхронно вызывает `second` → `second`.\n2. `await` приостанавливает `first`; продолжение (`first end`) встаёт в очередь микрозадач **первым**.\n3. Исполнитель `new Promise` синхронный → `promise`, а `.then` встаёт в очередь **вторым**.\n4. `script end`, затем микрозадачи по порядку: `first end`, `then`.\n5. Макрозадача `setTimeout` — последней.",
+        "tags": [
+          "async",
+          "event-loop"
+        ]
+      },
+      {
+        "id": "out-31",
+        "front": "Сколько будет `count` после одного клика и что напечатается в консоли?\n\n```jsx\nfunction Counter() {\n  const [count, setCount] = useState(0);\n\n  const handleClick = () => {\n    setCount(count + 1);\n    setCount(count + 1);\n    setCount(count + 1);\n    console.log(count);\n  };\n\n  return <button onClick={handleClick}>{count}</button>;\n}\n```",
+        "back": "В консоли `0`, а `count` станет `1`.\n\n- `count` — константа **этого рендера**, она равна `0` до конца обработчика. Все три вызова — это `setCount(0 + 1)`.\n- `setCount` не меняет переменную сразу, а ставит обновление в очередь. Новое значение появится только в **следующем** рендере, поэтому `console.log` печатает старое.\n- React объединяет (batching) три обновления в один ререндер.\n\nЧтобы прибавить три, нужна функция-обновление — она получает актуальное значение из очереди:\n\n```jsx\nsetCount((c) => c + 1);\nsetCount((c) => c + 1);\nsetCount((c) => c + 1); // итог: 3\n```",
+        "tags": [
+          "react",
+          "state",
+          "batching"
+        ]
+      },
+      {
+        "id": "out-32",
+        "front": "Каким будет `count` после одного клика?\n\n```jsx\nconst [count, setCount] = useState(0);\n\nconst handleClick = () => {\n  setCount((c) => c + 1);\n  setCount(count + 5);\n  setCount((c) => c * 2);\n};\n```",
+        "back": "`10`\n\nReact обрабатывает очередь обновлений по порядку, начиная с текущего значения `0`:\n\n1. `(c) => c + 1` → `0 + 1 = 1`;\n2. `count + 5` — это **обычное значение**, вычисленное заранее из `count` этого рендера: `0 + 5 = 5`. Оно просто заменяет результат, предыдущий шаг теряется;\n3. `(c) => c * 2` → `5 * 2 = 10`.\n\nВывод: функция-обновление опирается на результат предыдущих обновлений, а значение — на «снимок» state текущего рендера. Если новое состояние зависит от старого, всегда используй функцию.",
+        "tags": [
+          "react",
+          "state",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "out-33",
+        "front": "Какие типы получатся?\n\n```ts\ntype ToArray<T> = T extends unknown ? T[] : never;\ntype NoDistribute<T> = [T] extends [unknown] ? T[] : never;\n\ntype A = ToArray<string | number>;\ntype B = NoDistribute<string | number>;\ntype C = ToArray<never>;\n```",
+        "back": "- `A`: `string[] | number[]`\n- `B`: `(string | number)[]`\n- `C`: `never`\n\nУсловный тип над «голым» параметром **дистрибутивен**: для union он применяется к каждому члену отдельно, а результаты объединяются. Поэтому `A` — union массивов: массив строк **или** массив чисел, но не смешанный.\n\nВ `B` параметр обёрнут в кортеж `[T]`, дистрибутивность отключается, и union обрабатывается целиком — получается один массив со смешанными элементами.\n\n`never` — пустой union: дистрибутивному типу не к чему применяться, результат тоже `never`.",
+        "tags": [
+          "typescript",
+          "conditional types"
+        ]
+      },
+      {
+        "id": "out-34",
+        "front": "Что выведет код?\n\n```js\nconsole.log(+\"\");\nconsole.log(+\" 42 \");\nconsole.log(+\"1e3\");\nconsole.log(+[]);\nconsole.log(+{});\nconsole.log(+null, +undefined);\nconsole.log(+\"12px\");\n```",
+        "back": "```\n0\n42\n1000\n0\nNaN\n0 NaN\nNaN\n```\n\nУнарный `+` работает как `Number()`:\n\n- пустая строка и строка из пробелов → `0`; пробелы по краям обрезаются;\n- поддерживается экспоненциальная запись;\n- `[]` → `\"\"` → `0`; `{}` → `\"[object Object]\"` → `NaN`;\n- `null` → `0`, а `undefined` → `NaN`;\n- строка с лишними символами → `NaN`.\n\nДля разбора CSS-значений нужен `parseFloat(\"12px\")` → `12`: он читает число с начала строки и останавливается на первом неподходящем символе. Ловушка `Number(\"\") === 0`: пустое поле формы молча превращается в ноль.",
+        "tags": [
+          "приведение типов",
+          "числа"
+        ]
+      },
+      {
+        "id": "out-35",
+        "front": "Что выведет код?\n\n```js\nconsole.log(\"b\" + \"a\" + +\"a\" + \"a\");\nconsole.log(\"5\" * \"2\");\nconsole.log(\"5\" + 2);\nconsole.log(\"5\" - 2);\nconsole.log(true + 1);\n```",
+        "back": "```\nbaNaNa\n10\n52\n3\n2\n```\n\n- `+\"a\"` — унарный плюс превращает `\"a\"` в `NaN`, а дальше `\"ba\" + NaN + \"a\"` склеивается в строку `\"baNaNa\"`.\n- `*`, `-`, `/` работают только с числами и приводят строки к числу.\n- Бинарный `+` особенный: если хотя бы один операнд — строка, он склеивает строки.\n- `true` → `1`.\n\nИз-за двойного смысла `+` значения из инпутов (всегда строки) нужно явно приводить к числу перед сложением: `Number(a) + Number(b)`.",
+        "tags": [
+          "приведение типов",
+          "строки"
+        ]
+      },
+      {
+        "id": "out-36",
+        "front": "Что выведет код?\n\n```js\nconsole.log(Array(3).map((_, i) => i));\nconsole.log(Array.from({ length: 3 }, (_, i) => i));\nconsole.log([...Array(3)].map((_, i) => i));\nconsole.log(Array(3).fill(0));\n```",
+        "back": "```\n[ <3 empty items> ]\n[ 0, 1, 2 ]\n[ 0, 1, 2 ]\n[ 0, 0, 0 ]\n```\n\n`Array(3)` создаёт массив длиной 3, но **без элементов** — только дыры. `map`, `forEach` и `filter` пропускают дыры, поэтому колбэк не вызывается ни разу.\n\nSpread и `Array.from` превращают дыры в настоящие элементы со значением `undefined`, и `map` уже работает. `fill` заполняет все позиции.\n\nЛовушка с `fill` и объектами: `Array(3).fill([])` положит **один и тот же** массив в три ячейки. Для независимых объектов нужно `Array.from({ length: 3 }, () => [])`.",
+        "tags": [
+          "массивы",
+          "ловушка"
+        ]
+      },
+      {
+        "id": "out-37",
+        "front": "Что выведет код?\n\n```js\nfunction* dialog() {\n  const name = yield \"Как тебя зовут?\";\n  const age = yield `Привет, ${name}! Сколько тебе лет?`;\n  return `${name}, ${age}`;\n}\n\nconst it = dialog();\nconsole.log(it.next().value);\nconsole.log(it.next(\"Аня\").value);\nconsole.log(it.next(25));\nconsole.log(it.next());\n```",
+        "back": "```\nКак тебя зовут?\nПривет, Аня! Сколько тебе лет?\n{ value: 'Аня, 25', done: true }\n{ value: undefined, done: true }\n```\n\n- Первый `next()` запускает генератор до первого `yield` и возвращает его значение. Аргумент первого `next` никуда не попадает — его некому принять.\n- `next(\"Аня\")` возобновляет работу: выражение `yield` внутри **возвращает** `\"Аня\"`, и оно записывается в `name`.\n- `next(25)` доходит до `return` — его значение приходит с `done: true`.\n- После завершения генератор всегда отдаёт `{ value: undefined, done: true }`.\n\nДвусторонний обмен через `yield` — основа redux-saga и того, как async/await реализовывали до появления в языке.",
+        "tags": [
+          "генераторы"
+        ]
+      },
+      {
+        "id": "out-38",
+        "front": "Что выведет код?\n\n```js\nconst wait = (ms, value) => new Promise((resolve) => setTimeout(() => resolve(value), ms));\n\nPromise.all([wait(30, \"a\"), wait(10, \"b\"), \"c\"]).then(console.log);\nPromise.race([wait(30, \"a\"), wait(10, \"b\")]).then(console.log);\n```",
+        "back": "```\nb\n[ 'a', 'b', 'c' ]\n```\n\n- `Promise.race` выполняется значением **первого** завершившегося промиса — `\"b\"` через 10 мс.\n- `Promise.all` ждёт всех (30 мс) и возвращает результаты **в порядке исходного массива**, а не в порядке завершения. Обычные значения вроде `\"c\"` считаются уже выполненными промисами.\n\nПоэтому `race` печатается раньше, хотя вызван вторым.\n\nЕсли хотя бы один промис в `Promise.all` отклонится, весь результат сразу отклонится с этой ошибкой. Чтобы получить результаты всех, даже упавших, нужен `Promise.allSettled`.",
+        "tags": [
+          "промисы",
+          "порядок"
+        ]
+      },
+      {
+        "id": "out-39",
+        "front": "Что выведет код? (ES-модуль, строгий режим)\n\n```js\nconst user = { name: \"Аня\", tags: [] };\nuser.name = \"Боб\";\n\nObject.freeze(user);\nuser.tags.push(\"admin\");\nconsole.log(user.name, user.tags);\n\ntry {\n  user.name = \"Вера\";\n} catch (e) {\n  console.log(e.constructor.name);\n}\nconsole.log(user.name);\n```",
+        "back": "```\nБоб [ 'admin' ]\nTypeError\nБоб\n```\n\n- `const` запрещает **переприсвоить переменную**, но объект менять можно — поэтому `\"Боб\"` записался.\n- `Object.freeze` **поверхностный**: свойства самого объекта заморожены, а вложенный массив `tags` — нет, `push` сработал.\n- В строгом режиме запись в замороженный объект бросает `TypeError`. В нестрогом скрипте присваивание молча проигнорировалось бы, без ошибки.\n\nГлубокую неизменяемость дают рекурсивная заморозка, Immer или неизменяемые структуры данных.",
+        "tags": [
+          "объекты",
+          "иммутабельность"
+        ]
+      },
+      {
+        "id": "out-40",
+        "front": "Что выведет код?\n\n```js\nfunction first() {\n  try {\n    return \"try\";\n  } finally {\n    console.log(\"finally\");\n  }\n}\n\nfunction second() {\n  try {\n    return 1;\n  } finally {\n    return 2;\n  }\n}\n\nconsole.log(first());\nconsole.log(second());\n```",
+        "back": "```\nfinally\ntry\n2\n```\n\n- `finally` выполняется **всегда** — даже после `return` в `try`. Значение `\"try\"` уже вычислено и «отложено», затем выполняется `finally`, и только потом функция возвращает результат.\n- Если в `finally` есть свой `return`, он **перекрывает** результат `try` (и даже проглатывает брошенную в `try` ошибку).\n\nПоэтому `return` и `throw` внутри `finally` считают плохой практикой: линтер ругается правилом `no-unsafe-finally`. В `finally` оставляют только очистку — закрыть соединение, снять флаг загрузки, убрать таймер.",
+        "tags": [
+          "try",
+          "finally"
         ]
       }
     ]
@@ -2220,6 +3411,150 @@ export const SEED: SeedDeck[] = [
           "rsc",
           "данные"
         ]
+      },
+      {
+        "id": "next-22",
+        "front": "Что главное изменилось в Next.js 16?",
+        "back": "- **Turbopack по умолчанию** для `next dev` и `next build` — флаг `--turbopack` больше не нужен. Если в проекте свой `webpack`-конфиг, сборка упадёт: нужно перенести настройки или запускать с `--webpack`.\n- **`middleware.ts` переименован в `proxy.ts`**, функция — `proxy`.\n- **Только асинхронные API запроса**: `params`, `searchParams`, `cookies()`, `headers()` нужно `await`-ить; синхронный доступ из переходного периода Next.js 15 удалён.\n- **Cache Components** (`cacheComponents: true`): директива `\"use cache\"`, стабильные `cacheLife` и `cacheTag`. Через неё включается Partial Prerendering.\n- **Новые API кэша**: `revalidateTag(tag, profile)` требует второй аргумент, появились `updateTag` и `refresh` для Server Actions.\n- **React 19.2**: `<Activity>`, `useEffectEvent`, View Transitions.\n- `next lint` удалён — ESLint запускают напрямую. Минимальные версии: Node.js 20.9 и TypeScript 5.1.\n\nОбновляться удобно codemod-ом: `npx @next/codemod@canary upgrade latest`.",
+        "tags": [
+          "next 16",
+          "обновление"
+        ]
+      },
+      {
+        "id": "next-23",
+        "front": "Как задать срок жизни кэша через `cacheLife`?",
+        "back": "В модели Cache Components кэшируемая функция помечается `\"use cache\"`, а `cacheLife` описывает три времени:\n\n- **`stale`** — сколько клиент показывает кэш без запроса к серверу;\n- **`revalidate`** — после этого следующий запрос получит старые данные, а свежие обновятся в фоне;\n- **`expire`** — если запросов не было дольше этого срока, следующий запрос **ждёт** свежие данные.\n\n```ts\nimport { cacheLife, cacheTag } from \"next/cache\";\n\nexport async function getProducts() {\n  \"use cache\";\n  cacheLife(\"hours\");\n  cacheTag(\"products\");\n  return db.product.findMany();\n}\n\ncacheLife({ stale: 60, revalidate: 300, expire: 3600 }); // свой профиль в секундах\n```\n\nГотовые профили: `seconds`, `minutes`, `hours`, `days`, `weeks`, `max`. Без вызова применяется `default` (revalidate 15 минут, без истечения) — но лучше указывать явно, чтобы поведение было видно в коде.\n\nОбновить раньше срока — `updateTag(\"products\")` или `revalidateTag(\"products\", \"max\")` после изменения данных.",
+        "tags": [
+          "кэширование",
+          "cache components"
+        ]
+      },
+      {
+        "id": "next-24",
+        "front": "Чем отличаются `redirect`, `permanentRedirect`, `notFound`, `forbidden` и `unauthorized`?",
+        "back": "Все они **бросают** специальное исключение и прерывают рендер сегмента:\n\n- `redirect(\"/login\")` — временный редирект: 307, а в Server Action — клиентская навигация (или 303 без JS);\n- `permanentRedirect(\"/new-url\")` — постоянный, 308: страница переехала навсегда, поисковики обновят ссылку;\n- `notFound()` — 404 и показ ближайшего `not-found.tsx`;\n- `forbidden()` — 403 (`forbidden.tsx`), `unauthorized()` — 401 (`unauthorized.tsx`). Пока экспериментальные, включаются флагом `experimental.authInterrupts`.\n\n```tsx\nexport default async function PostPage({ params }: PageProps<\"/posts/[id]\">) {\n  const { id } = await params;\n  const post = await getPost(id);\n  if (!post) notFound();\n  return <Post post={post} />;\n}\n```\n\nЛовушка: раз они работают через исключение, их нельзя вызывать **внутри `try`** — `catch` перехватит редирект. Вызывай после блока `try/catch`.",
+        "tags": [
+          "навигация",
+          "ошибки"
+        ]
+      },
+      {
+        "id": "next-25",
+        "front": "Как читать и устанавливать cookies в App Router?",
+        "back": "Через асинхронную функцию `cookies()` из `next/headers`:\n\n```ts\nimport { cookies } from \"next/headers\";\n\n// чтение — в серверном компоненте, Server Action, Route Handler\nconst theme = (await cookies()).get(\"theme\")?.value ?? \"light\";\n```\n\n**Записывать и удалять** можно только в Server Action (Server Function) или Route Handler:\n\n```ts\n\"use server\";\nexport async function setTheme(theme: \"light\" | \"dark\") {\n  (await cookies()).set(\"theme\", theme, {\n    httpOnly: false,\n    sameSite: \"lax\",\n    maxAge: 60 * 60 * 24 * 365,\n  });\n}\n```\n\nПочему не в серверном компоненте: cookie ставится заголовком `Set-Cookie`, а при стриминге заголовки ответа уже отправлены.\n\nВызов `cookies()` делает маршрут **динамическим** — он рендерится на каждый запрос. Для сессии ставь `httpOnly: true`, `secure: true`, `sameSite: \"lax\"`.",
+        "tags": [
+          "cookies",
+          "server"
+        ]
+      },
+      {
+        "id": "next-26",
+        "front": "Как работают переменные окружения в Next.js? Что значит `NEXT_PUBLIC_`?",
+        "back": "- Переменные **без префикса** доступны только на сервере: в серверных компонентах, Route Handlers, Server Actions. В браузер они не попадают.\n- Переменные с префиксом **`NEXT_PUBLIC_`** при сборке **подставляются в JS-бандл** как обычные строки и видны любому пользователю.\n\n```ts\nprocess.env.DATABASE_URL;           // только сервер\nprocess.env.NEXT_PUBLIC_API_URL;    // и клиент, вшито при next build\n```\n\nЧто из этого следует:\n\n- секреты (ключи API, пароли от БД) — **никогда** с `NEXT_PUBLIC_`;\n- значение `NEXT_PUBLIC_` фиксируется в момент `next build`. Если собрать один Docker-образ и запустить с другими переменными, на клиенте останутся старые значения;\n- файлы: `.env`, `.env.local` (не коммитится), `.env.development`, `.env.production`.\n\nДля защиты от случайного импорта серверного кода на клиент: `import \"server-only\"` в модуле — сборка упадёт, если его подключит клиентский компонент.",
+        "tags": [
+          "env",
+          "безопасность"
+        ]
+      },
+      {
+        "id": "next-27",
+        "front": "Как сделать `sitemap.xml`, `robots.txt` и картинку для соцсетей в App Router?",
+        "back": "Специальными файлами в `app/` — Next.js сам отдаст их по нужным адресам:\n\n```ts\n// app/sitemap.ts → /sitemap.xml\nimport type { MetadataRoute } from \"next\";\n\nexport default async function sitemap(): Promise<MetadataRoute.Sitemap> {\n  const posts = await getPosts();\n  return [\n    { url: \"https://site.ru\", lastModified: new Date() },\n    ...posts.map((p) => ({ url: `https://site.ru/blog/${p.slug}`, lastModified: p.updatedAt })),\n  ];\n}\n\n// app/robots.ts → /robots.txt\nexport default function robots(): MetadataRoute.Robots {\n  return {\n    rules: { userAgent: \"*\", allow: \"/\", disallow: \"/admin/\" },\n    sitemap: \"https://site.ru/sitemap.xml\",\n  };\n}\n```\n\n**Картинка для превью ссылки**: файл `opengraph-image.png` рядом со страницей или `opengraph-image.tsx`, который генерирует изображение из JSX через `ImageResponse` из `next/og` — например, с заголовком статьи.\n\nПлюсы перед статическими файлами: данные берутся из базы и всегда актуальны, а типы `MetadataRoute` защищают от опечаток.",
+        "tags": [
+          "seo",
+          "метаданные"
+        ]
+      },
+      {
+        "id": "next-28",
+        "front": "Что такое группы маршрутов `(folder)` и приватные папки `_folder`?",
+        "back": "**Группа маршрутов** — папка в скобках. Она **не попадает в URL**, но может иметь свой `layout.tsx`:\n\n```\napp/\n  (marketing)/\n    layout.tsx        ← шапка лендинга\n    page.tsx          → /\n    pricing/page.tsx  → /pricing\n  (dashboard)/\n    layout.tsx        ← сайдбар кабинета\n    settings/page.tsx → /settings\n```\n\nЗачем: разные лейауты для разных разделов без лишнего сегмента в адресе, логическая группировка, несколько корневых лейаутов. Нельзя делать так, чтобы страницы в разных группах давали один и тот же URL — будет ошибка.\n\n**Приватная папка** — с подчёркиванием: `app/_components/`, `app/blog/_lib/`. Next.js исключает её из маршрутизации целиком, даже если внутри окажется `page.tsx`. Удобно держать компоненты и утилиты рядом с маршрутом.\n\nКстати, в этом приложении главный экран лежит в `app/_today/`.",
+        "tags": [
+          "роутинг",
+          "структура"
+        ]
+      },
+      {
+        "id": "next-29",
+        "front": "Как читать `searchParams` в странице и в клиентском компоненте?",
+        "back": "**В серверной странице** — через проп `searchParams`, это промис:\n\n```tsx\nexport default async function Page({ searchParams }: PageProps<\"/products\">) {\n  const { sort = \"new\", page = \"1\" } = await searchParams;\n  const products = await getProducts({ sort, page: Number(page) });\n  return <List products={products} />;\n}\n```\n\nИспользование `searchParams` делает страницу динамической.\n\n**В клиентском компоненте** — хук `useSearchParams` (только чтение):\n\n```tsx\n\"use client\";\nconst params = useSearchParams();\nconst sort = params.get(\"sort\") ?? \"new\";\n```\n\nЛовушка: если страница пререндерится статически, компонент с `useSearchParams` и всё дерево до ближайшего `<Suspense>` будут отрендерены **только на клиенте**. Поэтому такой компонент оборачивают в `<Suspense>` — тогда остальная страница попадёт в статический HTML. Так сделано и в этом приложении: экраны колоды и сессии обёрнуты в `Suspense`.",
+        "tags": [
+          "client",
+          "search params"
+        ]
+      },
+      {
+        "id": "next-30",
+        "front": "Что такое водопад запросов в серверных компонентах и как его избежать?",
+        "back": "Водопад — запросы идут **последовательно**, хотя друг от друга не зависят:\n\n```tsx\nconst user = await getUser(id);       // 300 мс\nconst posts = await getPosts(id);     // +300 мс\nconst stats = await getStats(id);     // +300 мс → 900 мс\n```\n\n**Параллельно** — запустить все сразу и дождаться вместе:\n\n```tsx\nconst [user, posts, stats] = await Promise.all([getUser(id), getPosts(id), getStats(id)]);\n// ≈ 300 мс\n```\n\nЕщё лучше — разбить страницу на части и отдавать их **потоком**: каждый компонент сам загружает свои данные, а медленный блок не задерживает остальные.\n\n```tsx\n<UserHeader id={id} />\n<Suspense fallback={<StatsSkeleton />}>\n  <Stats id={id} />\n</Suspense>\n```\n\nПоследовательные запросы оправданы, только когда второму нужны данные первого (например, `posts` зависят от `user.teamId`). Водопады встречаются и между вложенными лейаутами — если лейаут и страница ждут своих данных по очереди.",
+        "tags": [
+          "данные",
+          "производительность"
+        ]
+      },
+      {
+        "id": "next-31",
+        "front": "Как не делать один и тот же запрос к БД дважды за один рендер?",
+        "back": "Пользователь нужен и в лейауте (аватар), и в странице, и в `generateMetadata`. Чтобы не ходить в базу трижды, функцию оборачивают в `cache` из React:\n\n```ts\nimport { cache } from \"react\";\n\nexport const getUser = cache(async (id: string) => {\n  return prisma.user.findUnique({ where: { id } });\n});\n```\n\nВсе вызовы `getUser(\"42\")` в рамках **одного запроса** получат один и тот же результат, а запрос к БД выполнится один раз.\n\nЧто важно:\n\n- `cache` живёт только в пределах одного серверного запроса — это не кэш между пользователями;\n- аргументы сравниваются по ссылке, поэтому передавай примитивы (`id`), а не новый объект `{ id }`;\n- для `fetch` Next.js делает такую дедупликацию автоматически, а для ORM и SDK нужен `cache`.\n\nДля кэша **между** запросами используют `\"use cache\"` с `cacheLife`.",
+        "tags": [
+          "данные",
+          "react cache"
+        ]
+      },
+      {
+        "id": "next-32",
+        "front": "Как выполнить работу после отправки ответа (логи, аналитика)?",
+        "back": "Функцией `after` из `next/server`. Колбэк выполнится **после** того, как ответ отправлен пользователю, и не замедлит его:\n\n```ts\n\"use server\";\nimport { after } from \"next/server\";\n\nexport async function createOrder(data: OrderInput) {\n  const order = await db.order.create({ data });\n\n  after(async () => {\n    await analytics.track(\"order_created\", { id: order.id });\n    await sendSlackNotification(order);\n  });\n\n  return order;\n}\n```\n\nГде работает: серверные компоненты, Server Actions, Route Handlers и Proxy.\n\nОсобенности:\n\n- выполняется, даже если ответ завершился ошибкой, `notFound` или `redirect`;\n- сам `after` не делает маршрут динамическим; в статической странице колбэк выполнится при сборке или ревалидации;\n- время ограничено лимитом функции на платформе (`maxDuration`).\n\nРаньше для такого делали `fetch` без `await` — на serverless-платформах функция могла завершиться раньше, и задача терялась.",
+        "tags": [
+          "server",
+          "after"
+        ]
+      },
+      {
+        "id": "next-33",
+        "front": "Что не работает при статическом экспорте (`output: \"export\"`)?",
+        "back": "Статический экспорт собирает сайт в папку `out/` из HTML, CSS и JS — его можно разместить на любом хостинге без Node.js (GitHub Pages, S3, CDN). Это приложение собрано именно так.\n\nНе поддерживается всё, что требует сервера во время запроса:\n\n- динамические маршруты без `generateStaticParams`;\n- Route Handlers, которые читают запрос;\n- `cookies()`, `headers()`, Server Actions;\n- Proxy (бывший middleware), а также `rewrites`, `redirects` и `headers` в `next.config`;\n- ISR и ревалидация;\n- оптимизация изображений стандартным загрузчиком (`images: { unoptimized: true }` или свой загрузчик);\n- Draft Mode и перехватывающие маршруты.\n\nКак жить: данные с параметрами брать на клиенте (`useSearchParams`, `fetch`), а вместо `/deck/[id]` использовать `/deck/?id=…` — так и сделано в этом приложении.",
+        "tags": [
+          "static export",
+          "деплой"
+        ]
+      },
+      {
+        "id": "next-34",
+        "front": "Где проверять авторизацию в App Router?",
+        "back": "**Рядом с данными**, а не только в одном месте на входе.\n\n- **Proxy** удобен для быстрых редиректов («нет cookie — на /login»), но его недостаточно: matcher легко настроить неточно, и он не знает, какие данные запрашивает страница.\n- **Лейаут** не подходит как единственная защита: при клиентской навигации лейауты не перерендериваются, а страница может загрузить данные сама.\n- **Server Actions и Route Handlers** — это публичные эндпоинты. Их можно вызвать напрямую, минуя интерфейс, поэтому проверка нужна **внутри каждого**.\n\nРекомендуемый подход — **слой доступа к данным** (Data Access Layer): функции, которые сами проверяют сессию и права и возвращают только безопасные поля.\n\n```ts\nimport \"server-only\";\nimport { cache } from \"react\";\n\nexport const getCurrentUser = cache(async () => {\n  const session = await verifySession(); // нет сессии → redirect(\"/login\")\n  return db.user.findUnique({\n    where: { id: session.userId },\n    select: { id: true, name: true, role: true }, // без password\n  });\n});\n```",
+        "tags": [
+          "безопасность",
+          "авторизация"
+        ]
+      },
+      {
+        "id": "next-35",
+        "front": "Server Action или Route Handler — что выбрать?",
+        "back": "**Server Action** (`\"use server\"`) — для мутаций из **своего** интерфейса:\n\n- вызывается как функция из формы или обработчика, без ручного `fetch`;\n- работает с `<form action>` и `useActionState`, формы работают даже без JS;\n- после изменения можно сразу обновить кэш (`updateTag`, `refresh`) и вернуть новый UI за один запрос;\n- Next.js проверяет, что запрос пришёл с того же сайта (`Origin`).\n\n**Route Handler** (`app/api/.../route.ts`) — когда нужен **обычный HTTP-эндпоинт**:\n\n- вебхуки (Stripe, Telegram), которые вызывает внешний сервис;\n- API для мобильного приложения или других сайтов;\n- GET-запросы с кэшированием, отдача файлов, RSS, SSE-стримы;\n- нужны свои статус-коды и заголовки.\n\nДля **чтения** данных в серверных компонентах не нужно ни то, ни другое — компонент может обратиться к БД напрямую. Делать в серверном компоненте `fetch` к собственному Route Handler — лишний сетевой круг.",
+        "tags": [
+          "server actions",
+          "route handlers"
+        ]
+      },
+      {
+        "id": "next-36",
+        "front": "Как сделать мультиязычный сайт в App Router?",
+        "back": "Встроенной i18n-маршрутизации, как в Pages Router, в App Router нет. Стандартная схема:\n\n1. Все страницы кладут в динамический сегмент `app/[lang]/…`, и язык приходит в `params`.\n2. **Proxy** определяет язык по заголовку `Accept-Language` (или cookie) и редиректит `/about` → `/ru/about`.\n3. Словари грузят на сервере — переводы не попадают в клиентский бандл целиком.\n4. `generateStaticParams` возвращает список языков, чтобы страницы пререндерились.\n\n```tsx\n// app/[lang]/page.tsx\nconst dictionaries = {\n  ru: () => import(\"./dictionaries/ru.json\").then((m) => m.default),\n  en: () => import(\"./dictionaries/en.json\").then((m) => m.default),\n};\n\nexport default async function Page({ params }: PageProps<\"/[lang]\">) {\n  const { lang } = await params;\n  const t = await dictionaries[lang as \"ru\" | \"en\"]();\n  return <h1>{t.title}</h1>;\n}\n```\n\nНа практике часто берут библиотеку `next-intl`: она закрывает плюрализацию, форматирование дат и чисел и переводы в клиентских компонентах.",
+        "tags": [
+          "i18n",
+          "роутинг"
+        ]
+      },
+      {
+        "id": "next-37",
+        "front": "Как подключать сторонние скрипты через `next/script`?",
+        "back": "Компонент `<Script>` управляет тем, **когда** загрузится скрипт, чтобы аналитика и виджеты не тормозили страницу:\n\n```tsx\nimport Script from \"next/script\";\n\n<Script src=\"https://widget.example.com/chat.js\" strategy=\"lazyOnload\" />\n<Script id=\"analytics\" strategy=\"afterInteractive\">\n  {`window.dataLayer = window.dataLayer || [];`}\n</Script>\n```\n\nСтратегии:\n\n- `beforeInteractive` — до гидратации и любого кода Next.js (только для критичного: проверка ботов, согласие на cookies);\n- `afterInteractive` (по умолчанию) — сразу после гидратации: аналитика, теги;\n- `lazyOnload` — когда браузер простаивает: чаты, виджеты соцсетей;\n- `worker` — в Web Worker через Partytown (экспериментально).\n\nПлюсы перед обычным `<script>`: скрипт подключается один раз, даже если компонент рендерится на нескольких страницах, есть колбэки `onLoad`/`onReady`. Для Google Analytics и Tag Manager есть готовые компоненты в `@next/third-parties`.",
+        "tags": [
+          "скрипты",
+          "производительность"
+        ]
       }
     ]
   },
@@ -2396,6 +3731,184 @@ export const SEED: SeedDeck[] = [
         "back": "- **Не убирать фокус**: вместо `outline: none` использовать `:focus-visible` — обводка видна при навигации с клавиатуры, но не при клике мышью.\n- **Контраст** текста к фону — не ниже 4.5:1 для обычного текста (WCAG AA).\n- `prefers-reduced-motion` — отключать или ослаблять анимации для тех, у кого включено «уменьшить движение».\n- Размер шрифта в `rem`, чтобы работало увеличение шрифта в браузере.\n- Цвет не должен быть единственным носителем смысла: ошибку обозначают ещё иконкой или текстом.\n- Крупные области нажатия на мобильных (около 44×44px).",
         "tags": [
           "доступность"
+        ]
+      },
+      {
+        "id": "css-21",
+        "front": "Чем отличаются `block`, `inline` и `inline-block`?",
+        "back": "- **`block`** (`div`, `p`, `h1`) — начинается с новой строки и по умолчанию растягивается на всю ширину родителя. Учитывает `width`, `height` и все отступы.\n- **`inline`** (`span`, `a`, `strong`) — встаёт в строку текста, ширина — по содержимому. **Игнорирует** `width` и `height`, а вертикальные `margin` не раздвигают соседние строки.\n- **`inline-block`** — стоит в строке, как `inline`, но размеры и отступы работают, как у `block`. Подходит для кнопок и бейджей внутри текста.\n\n```css\na.button {\n  display: inline-block; /* иначе padding сверху и снизу наползёт на соседние строки */\n  padding: 8px 16px;\n}\n```\n\nЕщё полезные значения: `inline-flex` (флекс-контейнер, который сам стоит в строке — частый выбор для кнопок с иконкой) и `contents` (элемент исчезает из раскладки, а его дети становятся детьми родителя; осторожно с доступностью у кнопок и списков).",
+        "tags": [
+          "основы",
+          "display"
+        ]
+      },
+      {
+        "id": "css-22",
+        "front": "Чем псевдоклассы отличаются от псевдоэлементов?",
+        "back": "**Псевдокласс** (`:`) — выбирает существующий элемент в определённом **состоянии** или положении: `:hover`, `:focus-visible`, `:checked`, `:disabled`, `:first-child`, `:not()`, `:has()`.\n\n**Псевдоэлемент** (`::`) — стилизует **часть** элемента или создаёт виртуальный элемент, которого нет в DOM: `::before`, `::after`, `::placeholder`, `::selection`, `::marker`, `::backdrop`.\n\n```css\n.required::after {\n  content: \" *\";       /* без content псевдоэлемент не появится */\n  color: crimson;\n}\n\n.tooltip::before {\n  content: \"\";\n  position: absolute; /* декоративный треугольник */\n}\n```\n\nПодводные камни: `::before` и `::after` не работают у элементов без содержимого вроде `<img>` и `<input>`; текст из `content` может читаться скринридером, поэтому важную информацию так не передают. Старая запись с одним двоеточием (`:after`) работает для совместимости, но правильно — `::`.",
+        "tags": [
+          "селекторы",
+          "псевдоэлементы"
+        ]
+      },
+      {
+        "id": "css-23",
+        "front": "Какие свойства дёшево анимировать, а какие дорого?",
+        "back": "Дёшево — **`transform`** и **`opacity`**. Их меняет композитор (часто на GPU): раскладку и перерисовку пересчитывать не нужно, анимация идёт плавно даже при занятом главном потоке.\n\nДорого — всё, что меняет **геометрию**: `width`, `height`, `top`, `left`, `margin`, `padding`, `font-size`. Каждый кадр браузер заново считает раскладку страницы.\n\n```css\n/* плохо: пересчёт layout на каждом кадре */\n.panel { transition: left 0.3s; }\n\n/* хорошо: только композиция */\n.panel { transition: transform 0.3s; }\n.panel.open { transform: translateX(0); }\n```\n\n`will-change: transform` заранее выносит элемент на отдельный слой. Ставить его стоит точечно — на элементы, которые действительно будут анимироваться: каждый слой занимает память.\n\nИ не забывай про `@media (prefers-reduced-motion: reduce)` — для пользователей, которым движение мешает.",
+        "tags": [
+          "анимации",
+          "производительность"
+        ]
+      },
+      {
+        "id": "css-24",
+        "front": "Что такое reflow и repaint? Что такое layout thrashing?",
+        "back": "После изменения стилей браузер проходит этапы:\n\n1. **Layout (reflow)** — расчёт размеров и положения элементов. Самый дорогой этап, может затронуть всю страницу.\n2. **Paint (repaint)** — отрисовка пикселей: цвета, тени, текст.\n3. **Composite** — сборка слоёв в итоговую картинку.\n\nСмена `width` запускает все три этапа, `color` — paint и composite, `transform` — только composite.\n\n**Layout thrashing** — чередование записи и чтения геометрии в цикле. Чтение (`offsetHeight`, `getBoundingClientRect()`) после записи заставляет браузер **синхронно** пересчитать раскладку:\n\n```js\n// плохо: reflow на каждой итерации\nitems.forEach((el) => {\n  el.style.height = `${el.offsetWidth / 2}px`;\n});\n\n// хорошо: сначала все чтения, потом все записи\nconst widths = items.map((el) => el.offsetWidth);\nitems.forEach((el, i) => (el.style.height = `${widths[i] / 2}px`));\n```",
+        "tags": [
+          "рендеринг",
+          "производительность"
+        ]
+      },
+      {
+        "id": "css-25",
+        "front": "Как сохранить пропорции блока или картинки?",
+        "back": "**`aspect-ratio`** задаёт соотношение сторон, высота считается из ширины:\n\n```css\n.video { width: 100%; aspect-ratio: 16 / 9; }\n.avatar { width: 48px; aspect-ratio: 1; border-radius: 50%; }\n```\n\nРаньше для этого был хак с `padding-top: 56.25%`.\n\n**`object-fit`** решает, как картинка ведёт себя внутри блока с заданными размерами:\n\n- `cover` — заполнить блок целиком, обрезав лишнее (обложки, аватары);\n- `contain` — вписать целиком, оставив поля (логотипы, товары);\n- `fill` (по умолчанию) — растянуть, искажая пропорции.\n\n```css\n.cover img {\n  width: 100%;\n  height: 240px;\n  object-fit: cover;\n  object-position: center top; /* какую часть оставить при обрезке */\n}\n```\n\nБонус: если у `<img>` указаны атрибуты `width` и `height`, браузер сам выставит `aspect-ratio` и зарезервирует место ещё до загрузки — страница не будет прыгать (CLS).",
+        "tags": [
+          "изображения",
+          "пропорции"
+        ]
+      },
+      {
+        "id": "css-26",
+        "front": "Что делают `clamp()`, `min()` и `max()`?",
+        "back": "- `min(a, b)` — меньшее из значений: `width: min(100%, 720px)` — на широком экране 720px, на узком — вся ширина. Заменяет пару `width` + `max-width`.\n- `max(a, b)` — большее: `padding: max(16px, 4vw)` — отступ не меньше 16px.\n- `clamp(min, preferred, max)` — значение растёт вместе с экраном, но остаётся в границах.\n\n```css\nh1 {\n  font-size: clamp(1.75rem, 1.2rem + 2.5vw, 3rem);\n}\n\n.container {\n  width: min(100% - 2rem, 1100px);\n  margin-inline: auto;\n}\n```\n\nЭто **плавная типографика** без набора медиазапросов: заголовок мягко увеличивается от телефона до десктопа.\n\nВажная деталь: в «предпочтительном» значении смешивай `rem` и `vw`. Чистые `vw` не реагируют на масштабирование страницы пользователем — это проблема доступности.",
+        "tags": [
+          "адаптивность",
+          "функции"
+        ]
+      },
+      {
+        "id": "css-27",
+        "front": "Что такое `fr`, `minmax()` и `grid-template-areas`?",
+        "back": "**`fr`** — доля свободного места: `1fr 2fr` делит остаток в пропорции 1:2.\n\n**`minmax(min, max)`** — размер дорожки в диапазоне. Классический адаптивный ряд карточек без медиазапросов:\n\n```css\n.cards {\n  display: grid;\n  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));\n  gap: 16px;\n}\n```\n\n**`grid-template-areas`** — раскладка «картинкой»:\n\n```css\n.layout {\n  display: grid;\n  grid-template-columns: 240px 1fr;\n  grid-template-areas:\n    \"header header\"\n    \"sidebar main\";\n}\n.header  { grid-area: header; }\n.sidebar { grid-area: sidebar; }\n.main    { grid-area: main; }\n\n@media (width < 768px) {\n  .layout {\n    grid-template-columns: 1fr;\n    grid-template-areas: \"header\" \"main\" \"sidebar\";\n  }\n}\n```\n\nЛовушка: `1fr` — это `minmax(auto, 1fr)`, и длинное слово или широкая таблица растянут колонку. Лечится `minmax(0, 1fr)`.",
+        "tags": [
+          "grid"
+        ]
+      },
+      {
+        "id": "css-28",
+        "front": "Что такое mobile-first и какие медиазапросы, кроме ширины, полезны?",
+        "back": "**Mobile-first** — базовые стили пишутся для телефона, а для больших экранов добавляются через `min-width`. Мобильные устройства слабее — им достаются только базовые правила, а сложная раскладка — бонус для широких экранов.\n\n```css\n.grid { display: grid; gap: 12px; }\n@media (min-width: 768px) {\n  .grid { grid-template-columns: 1fr 1fr; }\n}\n```\n\nНовый синтаксис диапазонов: `@media (768px <= width < 1200px)`.\n\nМедиазапросы о **предпочтениях и устройстве**:\n\n- `prefers-color-scheme: dark` — системная тёмная тема;\n- `prefers-reduced-motion: reduce` — пользователь просит меньше анимаций;\n- `hover: hover` и `pointer: fine` — есть мышь. Ховер-эффекты лучше включать только так: на тач-экране `:hover` «залипает» после касания;\n- `prefers-contrast: more` — повышенный контраст.\n\n```css\n@media (hover: hover) {\n  .card:hover { transform: translateY(-2px); }\n}\n```",
+        "tags": [
+          "адаптивность",
+          "медиазапросы"
+        ]
+      },
+      {
+        "id": "css-29",
+        "front": "Как сделать светлую и тёмную тему на CSS-переменных?",
+        "back": "Цвета задаются **токенами** — переменными с ролью, а не с конкретным цветом. Тема переопределяет значения:\n\n```css\n:root {\n  --bg: #ffffff;\n  --text: #111111;\n  --accent: #2a7bbf;\n  color-scheme: light;\n}\n\n:root[data-theme=\"dark\"] {\n  --bg: #111215;\n  --text: #ffffff;\n  --accent: #5aa9e6;\n  color-scheme: dark;\n}\n\nbody { background: var(--bg); color: var(--text); }\n```\n\n- `color-scheme` перекрашивает встроенные элементы браузера: скроллбары, инпуты, календарь.\n- Переключатель меняет атрибут: `document.documentElement.dataset.theme = \"dark\"`.\n- Чтобы при загрузке не мигала светлая тема, тему из `localStorage` применяют **маленьким inline-скриптом в `<head>`**, до отрисовки страницы.\n\nТак устроено и это приложение: файл `globals.css`, переменные `--bg`, `--surface`, `--accent`, а скрипт темы выполняется ещё до React.",
+        "tags": [
+          "темы",
+          "переменные"
+        ]
+      },
+      {
+        "id": "css-30",
+        "front": "Как изолировать стили компонентов: БЭМ, CSS Modules, CSS-in-JS, Tailwind?",
+        "back": "Главная проблема CSS — глобальность: класс `.title` из одного компонента ломает другой.\n\n- **БЭМ** — соглашение об именах: `.card__title--large`. Ничего не нужно настраивать, но всё держится на дисциплине.\n- **CSS Modules** — сборщик превращает `.title` в уникальное `.Card_title__x7f2a`. Обычный CSS, изоляция автоматически.\n- **CSS-in-JS** (styled-components, Emotion) — стили в JS, динамика через пропсы. Минус — стоимость в рантайме и сложности с серверными компонентами. Есть варианты с нулевым рантаймом: vanilla-extract, Panda CSS.\n- **Tailwind** — утилитарные классы прямо в разметке. Не нужно придумывать имена, конфликтов нет, неиспользуемый CSS не попадает в сборку. Минус — длинные строки классов.\n\n```tsx\nimport styles from \"./Card.module.css\";\n<h2 className={styles.title} />;               // CSS Modules\n<h2 className=\"text-xl font-semibold\" />;       // Tailwind\n```\n\nНа собеседовании ценят не «правильный» выбор, а понимание компромиссов: изоляция, динамика, производительность и удобство команды.",
+        "tags": [
+          "архитектура",
+          "изоляция стилей"
+        ]
+      },
+      {
+        "id": "css-31",
+        "front": "Как работает Tailwind CSS и что изменилось в версии 4?",
+        "back": "Tailwind сканирует исходники проекта, находит используемые классы (`flex`, `p-4`, `text-mute`) и генерирует CSS **только для них**. Поэтому итоговый файл маленький, хотя возможных классов тысячи.\n\nВажное следствие — имя класса должно встречаться в коде **целиком**:\n\n```tsx\n<div className={`text-${color}-500`} />       // не сработает: такой строки в коде нет\n<div className={color === \"red\" ? \"text-red-500\" : \"text-blue-500\"} /> // сработает\n```\n\nЧто нового в v4:\n\n- настройка **в CSS**, а не в `tailwind.config.js`: `@import \"tailwindcss\"` и `@theme { --color-brand: #5aa9e6; }` — токены сразу становятся и классами (`bg-brand`), и CSS-переменными;\n- исходники находятся автоматически, `content` указывать не нужно;\n- новый движок — сборка в разы быстрее;\n- современный CSS внутри: каскадные слои, `color-mix()`, container queries без плагина (`@container`, `@md:`).\n\nЭто приложение использует Tailwind 4 — посмотри блок `@theme` в `globals.css`.",
+        "tags": [
+          "tailwind"
+        ]
+      },
+      {
+        "id": "css-32",
+        "front": "Как обрезать длинный текст многоточием в одну или несколько строк?",
+        "back": "**Одна строка:**\n\n```css\n.title {\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n```\n\nНужны все три свойства. Во flex-контейнере элементу ещё нужен `min-width: 0` — иначе он не сожмётся меньше длины текста.\n\n**Несколько строк** (поддерживается всеми браузерами, хоть и с префиксом):\n\n```css\n.excerpt {\n  display: -webkit-box;\n  -webkit-box-orient: vertical;\n  -webkit-line-clamp: 3;\n  overflow: hidden;\n}\n```\n\nВ Tailwind — `truncate` и `line-clamp-3`.\n\nДля длинных слов без пробелов (ссылки, хеши) — `overflow-wrap: anywhere`, чтобы они переносились, а не ломали вёрстку.\n\nНе забывай про доступность: обрезанный текст должен быть доступен целиком — во всплывающей подсказке, по клику или на отдельной странице.",
+        "tags": [
+          "текст",
+          "overflow"
+        ]
+      },
+      {
+        "id": "css-33",
+        "front": "Чем отличаются `:focus`, `:focus-visible` и `:focus-within`?",
+        "back": "- **`:focus`** — элемент в фокусе, неважно как: клик мышью, тап или Tab.\n- **`:focus-visible`** — фокус, который **стоит показать**. Браузер решает сам: при навигации с клавиатуры — да, при клике мышью по кнопке — нет. Для текстовых полей — всегда.\n- **`:focus-within`** — у элемента в фокусе он сам или **любой потомок**. Например, подсветить всю форму поиска, когда фокус в инпуте.\n\n```css\nbutton:focus-visible {\n  outline: 2px solid var(--accent);\n  outline-offset: 2px;\n}\n\n.search:focus-within {\n  box-shadow: 0 0 0 2px var(--accent);\n}\n```\n\nКлассическая ошибка — `*:focus { outline: none }` ради «красоты». Пользователи клавиатуры перестают видеть, где находятся. Правильно — убирать обводку только там, где её не просят, через `:focus-visible`.",
+        "tags": [
+          "фокус",
+          "доступность"
+        ]
+      },
+      {
+        "id": "css-34",
+        "front": "Какие есть комбинаторы и селекторы атрибутов?",
+        "back": "**Комбинаторы:**\n\n- `A B` — потомок на любом уровне вложенности;\n- `A > B` — только прямой ребёнок;\n- `A + B` — соседний элемент сразу **после** A;\n- `A ~ B` — все соседи после A.\n\n```css\n.menu > li { }                 /* только пункты верхнего уровня */\nh2 + p { margin-top: 0; }      /* первый абзац после заголовка */\ninput:checked ~ .panel { display: block; }  /* показать панель после отмеченного чекбокса */\n```\n\n**Селекторы атрибутов:**\n\n```css\n[disabled] { }                    /* атрибут есть */\n[type=\"email\"] { }                /* точное значение */\na[href^=\"https://\"] { }           /* начинается с */\na[href$=\".pdf\"]::after { content: \" (PDF)\"; }  /* заканчивается на */\n[class*=\"icon-\"] { }              /* содержит */\n[data-state=\"open\"] { }           /* data-атрибуты — удобный способ стилизовать состояние */\n```\n\nСелекторы атрибутов по специфичности равны классу. Состояние через `data-*` и `aria-*` (например, `[aria-expanded=\"true\"]`) заодно помогает доступности.",
+        "tags": [
+          "селекторы",
+          "основы"
+        ]
+      },
+      {
+        "id": "css-35",
+        "front": "Как работают формулы в `:nth-child()`?",
+        "back": "Формула `An+B`: `n` пробегает 0, 1, 2… и подходят элементы с полученными номерами (нумерация с 1).\n\n```css\nli:nth-child(2n) { }        /* чётные: 2, 4, 6 — то же, что even */\nli:nth-child(2n+1) { }      /* нечётные — odd */\nli:nth-child(3) { }         /* только третий */\nli:nth-child(n+4) { }       /* с четвёртого и дальше */\nli:nth-child(-n+3) { }      /* первые три */\nli:nth-last-child(-n+2) { } /* последние два */\n```\n\nЛовушка: `:nth-child` считает **всех** детей, а не только подходящих под селектор. `p:nth-child(2)` выберет второй элемент, только если это `p`.\n\nРешения:\n\n- `:nth-of-type(2)` — второй по счёту **среди элементов того же тега**;\n- `:nth-child(2 of .visible)` — второй среди элементов с классом `.visible`. Удобно для «зебры» в таблице с отфильтрованными строками.\n\nЕщё полезное: `:only-child` — единственный ребёнок, а `li:first-child:nth-last-child(4)` вместе с `li:first-child:nth-last-child(4) ~ li` выбирают все пункты, только если в списке ровно 4 элемента.",
+        "tags": [
+          "селекторы",
+          "nth-child"
+        ]
+      },
+      {
+        "id": "css-36",
+        "front": "Что такое логические свойства (`margin-inline`, `inset`)?",
+        "back": "Вместо физических направлений (left, right, top, bottom) — направления относительно **потока текста**:\n\n- `inline` — вдоль строки (в русском — слева направо);\n- `block` — поперёк строк (сверху вниз);\n- `start` / `end` — начало и конец.\n\n```css\n.card {\n  padding-inline: 16px;          /* padding-left + padding-right */\n  margin-block: 24px 0;          /* margin-top и margin-bottom */\n  border-inline-start: 3px solid var(--accent); /* слева, а в арабском — справа */\n  inline-size: min(100%, 600px); /* аналог width */\n}\n\n.overlay {\n  position: fixed;\n  inset: 0;                      /* top, right, bottom, left = 0 */\n}\n```\n\nЗачем: для языков с письмом справа налево (арабский, иврит) раскладка отзеркалится сама, без отдельных стилей. А ещё это просто короче: `margin-inline: auto` центрирует блок.\n\nTailwind использует логические свойства в классах `ms-4`, `pe-2`, `px-4` и `inset-0`.",
+        "tags": [
+          "логические свойства",
+          "i18n"
+        ]
+      },
+      {
+        "id": "css-37",
+        "front": "Что такое нативная вложенность CSS (CSS Nesting)?",
+        "back": "Возможность писать вложенные правила, как в Sass, — прямо в CSS, без сборки. Поддерживается всеми современными браузерами.\n\n```css\n.card {\n  padding: 16px;\n\n  & .title { font-weight: 600; }       /* .card .title */\n  &:hover { background: var(--surface-2); }  /* .card:hover */\n  &.active { border-color: var(--accent); }  /* .card.active */\n\n  .theme-dark & { background: #111; }  /* .theme-dark .card */\n\n  @media (width >= 768px) {\n    padding: 24px;\n  }\n}\n```\n\n`&` — ссылка на родительский селектор. Для потомков его можно не писать: `.title { }` внутри `.card` тоже станет `.card .title`.\n\nОтличие от Sass: нельзя склеивать части имени, как `&__title` в БЭМ, — `&` подставляется как целый селектор. Специфичность вложенного правила считается так, будто родитель обёрнут в `:is()`.\n\nСовет: не уходить глубже 2–3 уровней — иначе селекторы становятся длинными и слишком специфичными.",
+        "tags": [
+          "синтаксис",
+          "вложенность"
+        ]
+      },
+      {
+        "id": "css-38",
+        "front": "Как сделать карусель с «примагничиванием» на чистом CSS?",
+        "back": "Через **scroll snap** — браузер сам доводит прокрутку до ближайшего элемента:\n\n```css\n.carousel {\n  display: flex;\n  gap: 16px;\n  overflow-x: auto;\n  scroll-snap-type: x mandatory;   /* ось и строгость */\n  scroll-padding-inline: 16px;     /* отступ точки привязки от края */\n  overscroll-behavior-x: contain;  /* не прокручивать страницу и не листать историю */\n}\n\n.carousel > * {\n  flex: 0 0 85%;\n  scroll-snap-align: start;        /* к какому краю примагничивать */\n}\n```\n\n- `mandatory` — всегда останавливаться на элементе; `proximity` — только если рядом;\n- `scroll-snap-stop: always` — не пролистывать несколько слайдов одним свайпом.\n\nПлюсы перед JS-слайдером: родная инерция прокрутки на телефоне, работает с клавиатурой и колесом, нулевой JS. Стрелки «вперёд/назад» добавляются парой строк: `carousel.scrollBy({ left: carousel.clientWidth, behavior: \"smooth\" })`.",
+        "tags": [
+          "прокрутка",
+          "карусель"
+        ]
+      },
+      {
+        "id": "css-39",
+        "front": "Что такое View Transitions API?",
+        "back": "API для плавной анимации между двумя состояниями страницы. Браузер делает «снимок» до изменения, применяет изменения DOM и анимирует переход между снимками:\n\n```js\ndocument.startViewTransition(() => {\n  renderNewState(); // любое обновление DOM\n});\n```\n\nПо умолчанию — плавное перетекание. Элементы с одинаковым `view-transition-name` в старом и новом состоянии анимируются как **один объект**: карточка в списке «перелетает» в заголовок страницы деталей.\n\n```css\n.card-image { view-transition-name: hero; }\n\n::view-transition-old(root),\n::view-transition-new(root) {\n  animation-duration: 0.3s;\n}\n```\n\nДля многостраничных сайтов есть переходы между документами: `@view-transition { navigation: auto; }`. В React есть компонент `<ViewTransition>`, который запускает такие анимации при обновлениях внутри transition, — им анимируются переходы между экранами этого приложения (`app/elements/Page.tsx`).\n\nГде нет поддержки, изменения просто применяются без анимации — это безопасное прогрессивное улучшение.",
+        "tags": [
+          "анимации",
+          "view transitions"
+        ]
+      },
+      {
+        "id": "css-40",
+        "front": "Что такое `subgrid` и какую проблему он решает?",
+        "back": "Классическая боль: в ряду карточек у одной заголовок в две строки, и кнопки «Купить» оказываются на разной высоте. Каждая карточка — отдельная сетка, и они ничего не знают друг о друге.\n\n`subgrid` позволяет дочерней сетке **использовать дорожки родителя**:\n\n```css\n.cards {\n  display: grid;\n  grid-template-columns: repeat(3, 1fr);\n}\n\n.card {\n  display: grid;\n  grid-row: span 3;                /* карточка занимает 3 строки родителя */\n  grid-template-rows: subgrid;     /* и использует их как свои */\n}\n/* внутри карточки: картинка, заголовок, кнопка — по строке на каждый */\n```\n\nТеперь строки «заголовок» у всех карточек ряда одинаковой высоты (по самому длинному), и кнопки выровнены.\n\nРаботает и для колонок: например, выровнять подписи и поля формы, вложенные в разные блоки. Поддерживается всеми современными браузерами с 2023 года.",
+        "tags": [
+          "grid",
+          "subgrid"
         ]
       }
     ]

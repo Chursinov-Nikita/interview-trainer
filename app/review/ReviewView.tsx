@@ -8,7 +8,7 @@ import CardEditor from "../elements/CardEditor";
 import DeckIcon from "../elements/DeckIcon";
 import Markdown from "../elements/Markdown";
 import { Confetti, Skeleton, StreakFlame, WeekStrip } from "../elements/Visuals";
-import { duration, intervalLabel, plu, today as todayIso } from "../lib/dates";
+import { duration, inDays, plu, today as todayIso } from "../lib/dates";
 import { useCountUp, useReady, useToday } from "../lib/hooks";
 import { buildCram, buildSession, plan, streakOf } from "../lib/queue";
 import { sound } from "../lib/sound";
@@ -49,11 +49,21 @@ type Item = { id: string; repeat: boolean };
 type Anim = "enter" | "flip-out" | "flip-in" | Grade | null;
 type Tally = Record<Grade, number>;
 
-const GRADE_UI: Record<Grade, { label: string; key: string }> = {
-  again: { label: "Не помню", key: "1" },
-  hard: { label: "С трудом", key: "2" },
-  easy: { label: "Легко", key: "3" },
+const GRADE_UI: Record<Grade, { label: string; key: string; level: 0 | 1 | 2 }> = {
+  again: { label: "Не знаю", key: "1", level: 0 },
+  hard: { label: "Почти", key: "2", level: 1 },
+  easy: { label: "Знаю", key: "3", level: 2 },
 };
+
+function KnowMeter({ level }: { level: 0 | 1 | 2 }) {
+  return (
+    <svg viewBox="0 0 16 16" className="size-4 shrink-0 opacity-75" aria-hidden>
+      <circle cx="8" cy="8" r="6.75" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      {level === 1 && <path d="M8 3.5a4.5 4.5 0 0 1 0 9z" fill="currentColor" />}
+      {level === 2 && <circle cx="8" cy="8" r="4.5" fill="currentColor" />}
+    </svg>
+  );
+}
 
 const isGrade = (anim: Anim): anim is Grade => GRADES.includes(anim as Grade);
 const SWIPE = 110;
@@ -113,11 +123,7 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
     if (!current || !card || face !== "back" || isGrade(anim)) return;
     const ms = Math.min(60_000, performance.now() - cardStart.current);
     const scheduleIt = !cram && !current.repeat;
-    const text = scheduleIt
-      ? `через ${intervalLabel(nextInterval(card.srs, g))}`
-      : g === "again"
-        ? "ещё раз"
-        : "+1";
+    const text = scheduleIt ? inDays(nextInterval(card.srs, g)) : g === "again" ? "ещё раз" : "+1";
     pending.current = { ms, scheduleIt };
     sound[g]();
     if (g === "again") setShake(performance.now());
@@ -172,7 +178,7 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
         grade(map[e.key]);
       }
     }
-    if (e.key === "e" || e.key === "у") setEditing(true);
+    if (card && e.code === "KeyE") setEditing(true);
   });
 
   useEffect(() => {
@@ -337,20 +343,20 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
                 }`}
                 style={{ opacity: tilt }}
               >
-                {drag > 0 ? "ЛЕГКО" : "НЕ ПОМНЮ"}
+                {drag > 0 ? "ЗНАЮ" : "НЕ ЗНАЮ"}
               </div>
             )}
           </article>
         </div>
       </div>
 
-      <footer className="relative shrink-0">
+      <footer className="relative flex min-h-[4.5rem] shrink-0 flex-col justify-end">
         {face === "front" ? (
           <button onClick={flip} className="btn btn-primary h-14 w-full text-lg">
             Показать ответ <span className="kbd hidden sm:inline">Пробел</span>
           </button>
         ) : (
-          <div className="grid animate-rise grid-cols-3 gap-2.5 sm:gap-3">
+          <div className="grid animate-rise grid-cols-3 gap-2 sm:gap-3">
             {GRADES.map((g) => {
               const ui = GRADE_UI[g];
               const scheduleIt = !cram && !current.repeat;
@@ -360,19 +366,19 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
                   key={g}
                   onClick={() => grade(g)}
                   data-pressed={pressed}
-                  className="btn h-16 flex-col gap-0.5 px-2 leading-tight"
+                  className="grade"
                   style={{
                     transform: drag && ((g === "easy" && drag > 0) || (g === "again" && drag < 0)) ? `scale(${1 + tilt * 0.06})` : undefined,
                   }}
                 >
-                  <span className="flex items-center gap-2 text-[0.95rem]">
-                    <i className="size-1.5 rounded-full" style={{ background: `var(--${g})` }} />
+                  <span className="flex items-center gap-2 text-base font-semibold">
+                    <KnowMeter level={ui.level} />
                     {ui.label}
                   </span>
-                  <span className="text-xs text-mute">
-                    {scheduleIt ? intervalLabel(nextInterval(card.srs, g)) : g === "again" ? "повтор" : "ок"}
-                    <span className="kbd ml-1.5 hidden sm:inline">{ui.key}</span>
+                  <span className="grade-hint">
+                    {scheduleIt ? inDays(nextInterval(card.srs, g)) : g === "again" ? "ещё раз" : "дальше"}
                   </span>
+                  <span className="kbd absolute top-2 right-2.5 hidden sm:inline">{ui.key}</span>
                 </button>
               );
             })}
