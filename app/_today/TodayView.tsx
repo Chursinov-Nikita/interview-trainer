@@ -51,9 +51,9 @@ function Today({ today }: { today: string }) {
           <h2 id="session-title" className="text-base font-semibold">
             Сессия на сегодня
           </h2>
-          <div className="mt-5 rounded-2xl bg-accent-soft px-5 py-6 text-center">
-            <div className="num text-6xl leading-none font-semibold">{total}</div>
-            <div className="mt-2.5 text-mute">
+          <div className="mt-5 rounded-2xl bg-surface-2 px-5 py-4 text-center">
+            <div className="num text-5xl leading-none font-semibold">{total}</div>
+            <div className="mt-2 text-mute">
               {total
                 ? `${plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")} к повторению`
                 : "на сегодня всё"}
@@ -93,16 +93,9 @@ function Today({ today }: { today: string }) {
             <h2 id="streak-title" className="text-base font-semibold">
               Серия
             </h2>
-            <span className="text-[13px] text-dim">рекорд {plu(streak.best, ["день", "дня", "дней"])}</span>
+            <span className="num text-[13px] text-mute">{plu(streak.current, ["день", "дня", "дней"])} подряд</span>
           </div>
-          <div className="mt-5 flex items-baseline gap-2">
-            <span className="num text-2xl leading-none">{streak.current}</span>
-            <span className="text-mute">
-              {plu(streak.current, ["день", "дня", "дней"]).replace(/^\d+ /, "")} подряд
-              {!streak.today && streak.current > 0 ? " · продли сегодня" : ""}
-            </span>
-          </div>
-          <div className="mt-6">
+          <div className="mt-5">
             <WeekStrip log={log} today={today} />
           </div>
         </section>
