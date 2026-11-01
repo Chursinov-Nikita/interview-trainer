@@ -69,7 +69,7 @@ function Today({ today }: { today: string }) {
               ))}
             </dl>
           </div>
-          <div className="mt-auto grid auto-cols-fr grid-flow-col gap-2.5 pt-6">
+          <div className="mt-auto grid gap-2.5 pt-6 sm:grid-flow-col sm:auto-cols-fr">
             {total > 0 && (
               <Link href="/review/" className="btn btn-primary min-h-12 px-3">
                 <Play size={17} fill="currentColor" />

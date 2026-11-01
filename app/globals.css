@@ -14,8 +14,8 @@
 
   --primary: #ffffff;
   --on-primary: #000000;
-  --accent: #3f7fc6;
-  --accent-soft: rgb(63 127 198 / 0.16);
+  --accent: #30609a;
+  --accent-soft: rgb(48 96 154 / 0.18);
   --chart-rest: #3d3e44;
 
   --again: #f07183;
@@ -51,8 +51,8 @@
 
   --primary: #1d1f20;
   --on-primary: #ffffff;
-  --accent: #22649f;
-  --accent-soft: rgb(34 100 159 / 0.12);
+  --accent: #1c4f86;
+  --accent-soft: rgb(28 79 134 / 0.12);
   --chart-rest: #d4d5d9;
 
   --again: #c4242a;
@@ -637,9 +637,7 @@ label {
 
 .tab-bar {
   border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  background: color-mix(in srgb, var(--bg) 62%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(1.6);
-  backdrop-filter: blur(22px) saturate(1.6);
+  background: var(--bg);
 }
 .tab-pill {
   position: absolute;
