@@ -51,24 +51,26 @@ function Today({ today }: { today: string }) {
           <h2 id="session-title" className="text-base font-semibold">
             Сессия на сегодня
           </h2>
-          <div className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-4">
-            <div>
-              <div className="num text-4xl leading-none font-semibold">{total}</div>
-              <div className="mt-2 text-mute">{total ? "к повторению" : "на сегодня всё"}</div>
+          <div className="mt-5 rounded-2xl bg-accent-soft px-5 py-6 text-center">
+            <div className="num text-6xl leading-none font-semibold">{total}</div>
+            <div className="mt-2.5 text-mute">
+              {total
+                ? `${plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")} к повторению`
+                : "на сегодня всё"}
             </div>
-            <dl className="grid w-full grid-cols-3 items-end gap-4 pb-0.5 sm:flex sm:w-auto sm:gap-8">
-              {[
-                { label: "повторить", value: due.length },
-                { label: "новых", value: fresh.length },
-                { label: "сделано", value: doneToday },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex min-w-0 flex-col">
-                  <dt className="text-[13px] leading-tight text-dim">{label}</dt>
-                  <dd className="num mt-1.5 text-2xl leading-none">{value}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
+          <dl className="mt-2.5 grid grid-cols-3 gap-2.5">
+            {[
+              { label: "повторить", value: due.length },
+              { label: "новых", value: fresh.length },
+              { label: "сделано", value: doneToday },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex flex-col-reverse items-center rounded-2xl bg-surface-2 px-2 py-3">
+                <dt className="mt-1.5 text-[13px] leading-tight text-dim">{label}</dt>
+                <dd className="num text-xl leading-none">{value}</dd>
+              </div>
+            ))}
+          </dl>
           <div className="mt-auto grid gap-2.5 pt-6 sm:grid-flow-col sm:auto-cols-fr">
             {total > 0 && (
               <Link href="/review/" className="btn btn-primary min-h-12 px-3">

@@ -211,6 +211,9 @@ label {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+.input:focus-visible {
+  outline: none;
+}
 
 @utility tile {
   background: var(--surface);
@@ -367,6 +370,19 @@ label {
 }
 .input::placeholder {
   color: var(--dim);
+}
+.search-input {
+  height: 2.875rem;
+  padding-inline: 2.75rem;
+  border-radius: 999px;
+  font-size: 1rem;
+}
+.search-input::placeholder {
+  opacity: 0.8;
+}
+.search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
 }
 }
 

@@ -55,18 +55,18 @@ function Decks({ today, initialQuery }: { today: string; initialQuery: string })
       </header>
 
       <label className="relative block">
-        <Search size={16} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-dim" />
+        <Search size={18} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-dim" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск по вопросам, ответам и тегам"
-          className="input rounded-full pl-10"
+          placeholder="Найти вопрос или тег"
+          className="input search-input"
           type="search"
         />
         {query && (
           <button
             onClick={() => setQuery("")}
-            className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-dim hover:text-text"
+            className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-dim hover:text-text"
             aria-label="Очистить поиск"
           >
             <X size={16} />

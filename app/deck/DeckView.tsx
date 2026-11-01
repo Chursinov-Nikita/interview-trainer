@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useState } from "react";
-import { ChevronLeft, Download, Dumbbell, Pencil, Play, Plus, Search, Trash } from "lucide-react";
+import { ChevronLeft, Download, Dumbbell, Pencil, Play, Plus, Search, Trash, X } from "lucide-react";
 import CardEditor from "../elements/CardEditor";
 import CardRow from "../elements/CardRow";
 import DeckEditor from "../elements/DeckEditor";
@@ -128,10 +128,19 @@ function Deck({ id, today }: { id: string; today: string }) {
 
       <div className="flex items-center gap-2">
         <label className="relative flex-1">
-          <Search size={16} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-dim" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск в колоде" className="input rounded-full pl-10" type="search" />
+          <Search size={18} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-dim" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Найти в колоде" className="input search-input" type="search" />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-dim hover:text-text"
+              aria-label="Очистить поиск"
+            >
+              <X size={16} />
+            </button>
+          )}
         </label>
-        <button onClick={() => setEditCard("new")} className="btn btn-primary min-h-10 shrink-0 px-4 text-sm" aria-label="Добавить карточку">
+        <button onClick={() => setEditCard("new")} className="btn btn-primary h-[2.875rem] shrink-0 px-4 text-sm" aria-label="Добавить карточку">
           <Plus size={16} strokeWidth={2.2} />
           <span className="hidden sm:inline">Карточка</span>
         </button>
