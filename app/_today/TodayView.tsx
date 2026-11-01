@@ -34,7 +34,6 @@ function Today({ today }: { today: string }) {
   const { due, fresh, total } = plan(scope, today);
   const doneToday = log[today]?.reviews ?? 0;
   const streak = streakOf(log, today);
-  const minutes = Math.max(1, Math.round((Math.min(total, settings.sessionSize) * 20) / 60));
   const hard = hardest(Object.values(cards));
   const [editCard, setEditCard] = useState<string | null>(null);
 
@@ -70,14 +69,14 @@ function Today({ today }: { today: string }) {
               ))}
             </dl>
           </div>
-          <div className="mt-auto flex flex-wrap gap-2.5 pt-6">
+          <div className="mt-auto grid auto-cols-fr grid-flow-col gap-2.5 pt-6">
             {total > 0 && (
-              <Link href="/review/" className="btn btn-primary min-h-11 px-6">
+              <Link href="/review/" className="btn btn-primary min-h-11">
                 <Play size={16} fill="currentColor" />
-                Начать · ≈ {minutes} мин
+                Начать
               </Link>
             )}
-            <Link href="/review/?mode=cram" className={`btn min-h-11 ${total > 0 ? "" : "btn-primary px-6"}`}>
+            <Link href="/review/?mode=cram" className={`btn min-h-11 ${total > 0 ? "" : "btn-primary"}`}>
               <Dumbbell size={16} />
               {total > 0 ? "Тренировка" : "Свободная тренировка"}
             </Link>
