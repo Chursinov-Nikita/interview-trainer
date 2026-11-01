@@ -291,12 +291,12 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
           >
             <div className="flex shrink-0 items-center gap-2.5 px-5 pt-4">
               {deck && <DeckIcon icon={deck.icon} color={deck.color} size="sm" />}
-              <span className="truncate text-sm font-semibold text-mute">{deck?.title}</span>
+              <span className="min-w-0 truncate text-sm font-semibold text-mute">{deck?.title}</span>
               {!card.srs && !current.repeat && (
-                <span className="rounded-full bg-easy-soft px-2 py-0.5 text-xs font-medium text-easy">новая</span>
+                <span className="rounded-full bg-easy-soft px-2 py-0.5 text-xs font-medium whitespace-nowrap text-easy shrink-0">новая</span>
               )}
               {current.repeat && (
-                <span className="rounded-full bg-again-soft px-2 py-0.5 text-xs font-medium text-again">ещё раз</span>
+                <span className="rounded-full bg-again-soft px-2 py-0.5 text-xs font-medium whitespace-nowrap text-again shrink-0">ещё раз</span>
               )}
               <button
                 onClick={(e) => {
