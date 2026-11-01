@@ -116,6 +116,26 @@ export function WeekStrip({ log, today, ignite = false }: { log: Record<string, 
   );
 }
 
+export function StateBar({
+  learned,
+  learning,
+  total,
+  className = "",
+}: {
+  learned: number;
+  learning: number;
+  total: number;
+  className?: string;
+}) {
+  const share = (n: number) => `${(n / (total || 1)) * 100}%`;
+  return (
+    <div className={`flex h-1.5 gap-0.5 overflow-hidden rounded-full ${className}`}>
+      {learned > 0 && <div className="rounded-full bg-accent" style={{ width: share(learned) }} />}
+      {learning > 0 && <div className="rounded-full bg-chart-rest" style={{ width: share(learning) }} />}
+    </div>
+  );
+}
+
 export function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`skeleton ${className}`} />;
 }

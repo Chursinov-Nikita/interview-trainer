@@ -9,7 +9,7 @@ import CardRow from "../elements/CardRow";
 import DeckEditor from "../elements/DeckEditor";
 import DeckIcon from "../elements/DeckIcon";
 import Sheet from "../elements/Sheet";
-import { PageSkeleton } from "../elements/Visuals";
+import { PageSkeleton, StateBar } from "../elements/Visuals";
 import { plu } from "../lib/dates";
 import { useReady, useToday } from "../lib/hooks";
 import { downloadJson, slug } from "../lib/io";
@@ -64,7 +64,6 @@ function Deck({ id, today }: { id: string; today: string }) {
   const cards = cardsOf(allCards, id);
   const states = countStates(cards);
   const due = plan({ decks, cards: allCards, log, settings }, today, id).total;
-  const total = cards.length || 1;
 
   const tagCounts = new Map<string, number>();
   cards.forEach((c) => c.tags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)));
@@ -120,10 +119,7 @@ function Deck({ id, today }: { id: string; today: string }) {
             </div>
           ))}
         </dl>
-        <div className="mt-5 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-surface-2">
-          <div className="bg-accent" style={{ width: `${(states.learned / total) * 100}%` }} />
-          <div className="bg-chart-rest" style={{ width: `${(states.learning / total) * 100}%` }} />
-        </div>
+        <StateBar learned={states.learned} learning={states.learning} total={cards.length} className="mt-5 bg-surface-2" />
         <p className="mt-2 text-[13px] text-dim">
           <span className="text-mute">Выучено</span> — интервал от трёх недель · <span className="text-mute">Учу</span> — уже
           видел, но интервал короче

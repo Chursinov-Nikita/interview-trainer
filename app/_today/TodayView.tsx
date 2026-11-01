@@ -6,7 +6,7 @@ import { Dumbbell, Play } from "lucide-react";
 import CardEditor from "../elements/CardEditor";
 import CardRow from "../elements/CardRow";
 import DeckIcon from "../elements/DeckIcon";
-import { PageSkeleton, WeekStrip } from "../elements/Visuals";
+import { PageSkeleton, StateBar, WeekStrip } from "../elements/Visuals";
 import { longDate, plu } from "../lib/dates";
 import { useHour, useReady, useToday } from "../lib/hooks";
 import { cardsOf, countStates, deckOrder, hardest, plan, streakOf, todayByDeck } from "../lib/queue";
@@ -118,7 +118,6 @@ function Today({ today }: { today: string }) {
             const deckCards = cardsOf(cards, deck.id);
             const states = countStates(deckCards);
             const deckDue = perDeck[deck.id] ?? 0;
-            const size = deckCards.length || 1;
             return (
               <Link
                 key={deck.id}
@@ -133,20 +132,16 @@ function Today({ today }: { today: string }) {
                       {deckDue > 0 ? `${deckDue} сегодня` : "—"}
                     </span>
                   </div>
-                  <div className="mt-2 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-bg">
-                    <div className="bg-accent" style={{ width: `${(states.learned / size) * 100}%` }} />
-                    <div className="bg-chart-rest" style={{ width: `${(states.learning / size) * 100}%` }} />
-                  </div>
+                  <StateBar learned={states.learned} learning={states.learning} total={deckCards.length} className="mt-2 bg-bg" />
                   <div className="num mt-1.5 text-[13px] text-dim">
-                    начато <span className="text-text">{states.learning + states.learned}</span> из {deckCards.length}
-                    {states.learned > 0 && ` · выучено ${states.learned}`}
+                    <span className="text-text">{states.learning + states.learned}</span> из {deckCards.length}
                   </div>
                 </div>
               </Link>
             );
           })}
         </div>
-        <div className="mt-4 flex gap-5 text-[13px] text-dim">
+        <div className="mt-4 flex justify-between text-[13px] text-dim">
           <span className="flex items-center gap-1.5">
             <i className="h-1.5 w-3 rounded-full bg-accent" /> выучено
           </span>

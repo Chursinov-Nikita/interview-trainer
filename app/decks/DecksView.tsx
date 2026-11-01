@@ -8,7 +8,7 @@ import CardEditor from "../elements/CardEditor";
 import CardRow from "../elements/CardRow";
 import DeckEditor from "../elements/DeckEditor";
 import DeckIcon from "../elements/DeckIcon";
-import { PageSkeleton } from "../elements/Visuals";
+import { PageSkeleton, StateBar } from "../elements/Visuals";
 import { plu } from "../lib/dates";
 import { useReady, useToday } from "../lib/hooks";
 import { cardsOf, countStates, deckOrder, matches, normalize, plan, todayByDeck } from "../lib/queue";
@@ -94,7 +94,6 @@ function Decks({ today, initialQuery }: { today: string; initialQuery: string })
           {ordered.map((deck) => {
             const deckCards = cardsOf(cards, deck.id);
             const s = countStates(deckCards);
-            const size = deckCards.length || 1;
             const due = perDeck[deck.id] ?? 0;
             return (
               <li key={deck.id}>
@@ -129,10 +128,7 @@ function Decks({ today, initialQuery }: { today: string; initialQuery: string })
                         ))}
                       </dl>
                     </div>
-                    <div className="mt-4 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-surface-2">
-                      <div className="bg-accent" style={{ width: `${(s.learned / size) * 100}%` }} />
-                      <div className="bg-chart-rest" style={{ width: `${(s.learning / size) * 100}%` }} />
-                    </div>
+                    <StateBar learned={s.learned} learning={s.learning} total={deckCards.length} className="mt-4 bg-surface-2" />
                   </div>
                   <ChevronRight size={18} className="mt-2.5 shrink-0 text-dim max-sm:hidden" />
                 </Link>

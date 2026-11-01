@@ -63,7 +63,7 @@ export default function Nav() {
       </header>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+        className="tab-bar fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] lg:hidden"
         style={{ viewTransitionName: "tab-bar" }}
         aria-label="Разделы"
       >
