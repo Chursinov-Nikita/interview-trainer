@@ -49,7 +49,7 @@ function Today({ today }: { today: string }) {
       <div className="grid gap-[14px] lg:grid-cols-12">
         <section className="tile flex flex-col p-[22px] lg:col-span-8" aria-labelledby="session-title">
           <h2 id="session-title" className="text-base font-semibold">
-            Сессия на сегодня
+            Сегодня
           </h2>
           <div className="mt-5 rounded-2xl bg-surface-2 px-5 py-4 text-center">
             <div className="num text-5xl leading-none font-semibold">{total}</div>
