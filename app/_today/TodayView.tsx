@@ -52,18 +52,13 @@ function Today({ today }: { today: string }) {
             План на сегодня
           </h2>
           <dl className="mt-5 grid auto-rows-fr grid-cols-3 gap-2.5">
-            <div className="col-span-2 flex flex-row-reverse items-center justify-center gap-2.5 rounded-2xl bg-surface-2 px-3 py-3">
-              <dt className="text-left text-[13px] leading-tight text-mute">
-                {total ? (
-                  <>
-                    {plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")}
-                    <br />к повторению
-                  </>
-                ) : (
-                  "на сегодня всё"
-                )}
+            <div className="col-span-2 flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-3 py-3">
+              <dt className="mt-1.5 text-[13px] leading-tight text-dim">
+                {total
+                  ? `${plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")} к повторению`
+                  : "на сегодня всё"}
               </dt>
-              <dd className="num text-4xl leading-none font-semibold">{total}</dd>
+              <dd className="num text-2xl leading-none font-semibold">{total}</dd>
             </div>
             <div className="flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-2 py-3">
               <dt className="mt-1.5 text-[13px] leading-tight text-dim">рекорд</dt>
