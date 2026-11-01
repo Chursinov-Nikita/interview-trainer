@@ -34,26 +34,12 @@ function Today({ today }: { today: string }) {
   const minutes = Math.max(1, Math.round((Math.min(total, settings.sessionSize) * 20) / 60));
 
   const perDeck = todayByDeck(scope, today);
-  const top = ordered
-    .map((d) => ({ deck: d, due: plan(scope, today, d.id).due.length }))
-    .sort((a, b) => b.due - a.due)[0];
-
-  const finding =
-    total === 0
-      ? doneToday > 0
-        ? `Сегодня ${plu(doneToday, ["повторение", "повторения", "повторений"])} — всё по плану`
-        : "Ничего не ждёт: можно потренироваться без влияния на расписание"
-      : top && top.due > 0
-        ? `Дольше всего ждёт ${top.deck.title}: ${plu(top.due, ["карточка", "карточки", "карточек"])}`
-        : `${plu(fresh.length, ["новая карточка", "новые карточки", "новых карточек"])} на сегодня`;
 
   return (
     <div className="space-y-[14px]">
       <header className="pb-4">
         <h1 className="text-2xl font-medium">{greeting(hour)}</h1>
-        <p className="mt-1 text-mute">
-          {longDate(today)} · {finding}
-        </p>
+        <p className="mt-1 text-mute">{longDate(today)}</p>
       </header>
 
       <div className="grid gap-[14px] lg:grid-cols-12">
