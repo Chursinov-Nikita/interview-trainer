@@ -100,7 +100,7 @@ export function WeekStrip({ log, today, ignite = false }: { log: Record<string, 
             <span
               className={`grid size-8 place-items-center rounded-full ${
                 active
-                  ? `bg-accent text-[#0e1a24] ${isToday && ignite ? "ignite" : ""}`
+                  ? `bg-accent text-white ${isToday && ignite ? "ignite" : ""}`
                   : isToday
                     ? "bg-surface-2 text-text ring-1 ring-line-strong"
                     : "bg-surface-2 text-dim"

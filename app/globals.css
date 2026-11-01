@@ -14,8 +14,8 @@
 
   --primary: #ffffff;
   --on-primary: #000000;
-  --accent: #5aa9e6;
-  --accent-soft: rgb(90 169 230 / 0.16);
+  --accent: #3f7fc6;
+  --accent-soft: rgb(63 127 198 / 0.16);
   --chart-rest: #3d3e44;
 
   --again: #f07183;
@@ -51,8 +51,8 @@
 
   --primary: #1d1f20;
   --on-primary: #ffffff;
-  --accent: #2a7bbf;
-  --accent-soft: rgb(42 123 191 / 0.12);
+  --accent: #22649f;
+  --accent-soft: rgb(34 100 159 / 0.12);
   --chart-rest: #d4d5d9;
 
   --again: #c4242a;
@@ -263,6 +263,9 @@ label {
 }
 .btn:hover {
   filter: brightness(1.12);
+}
+.btn svg {
+  flex-shrink: 0;
 }
 .btn:active,
 .btn[data-pressed="true"] {
@@ -572,29 +575,25 @@ label {
 ::view-transition {
   pointer-events: none;
 }
-::view-transition-old(.nav-forward) {
-  --slide-offset: -48px;
-  animation:
-    160ms ease-in both vt-fade reverse,
-    380ms var(--ease-out-expo) both vt-slide reverse;
-}
-::view-transition-new(.nav-forward) {
-  --slide-offset: 48px;
-  animation:
-    240ms ease-out 100ms both vt-fade,
-    420ms var(--ease-out-expo) both vt-slide;
-}
+::view-transition-old(.nav-forward),
 ::view-transition-old(.nav-back) {
-  --slide-offset: 48px;
   animation:
-    160ms ease-in both vt-fade reverse,
-    380ms var(--ease-out-expo) both vt-slide reverse;
+    220ms ease-out both vt-fade reverse,
+    340ms var(--ease-out-expo) both vt-slide reverse;
 }
+::view-transition-new(.nav-forward),
 ::view-transition-new(.nav-back) {
-  --slide-offset: -48px;
   animation:
-    240ms ease-out 100ms both vt-fade,
-    420ms var(--ease-out-expo) both vt-slide;
+    280ms ease-out both vt-fade,
+    380ms var(--ease-out-expo) both vt-slide;
+}
+::view-transition-old(.nav-forward),
+::view-transition-new(.nav-back) {
+  --slide-offset: -28px;
+}
+::view-transition-new(.nav-forward),
+::view-transition-old(.nav-back) {
+  --slide-offset: 28px;
 }
 @keyframes vt-fade {
   from {
@@ -618,6 +617,9 @@ label {
 ::view-transition-old(site-header),
 ::view-transition-old(tab-bar) {
   display: none;
+}
+::view-transition-new(tab-bar) {
+  background: var(--bg);
 }
 ::view-transition-new(site-header),
 ::view-transition-new(tab-bar) {

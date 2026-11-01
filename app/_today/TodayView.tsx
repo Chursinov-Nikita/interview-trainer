@@ -71,13 +71,16 @@ function Today({ today }: { today: string }) {
           </div>
           <div className="mt-auto grid auto-cols-fr grid-flow-col gap-2.5 pt-6">
             {total > 0 && (
-              <Link href="/review/" className="btn btn-primary min-h-11">
-                <Play size={16} fill="currentColor" />
+              <Link href="/review/" className="btn btn-primary min-h-12 px-3">
+                <Play size={17} fill="currentColor" />
                 Начать
               </Link>
             )}
-            <Link href="/review/?mode=cram" className={`btn min-h-11 ${total > 0 ? "" : "btn-primary"}`}>
-              <Dumbbell size={16} />
+            <Link
+              href="/review/?mode=cram"
+              className={`btn min-h-12 px-3 ${total > 0 ? "ring-1 ring-line-strong ring-inset" : "btn-primary"}`}
+            >
+              <Dumbbell size={18} />
               {total > 0 ? "Тренировка" : "Свободная тренировка"}
             </Link>
           </div>
@@ -133,7 +136,7 @@ function Today({ today }: { today: string }) {
                   </div>
                   <StateBar learned={states.learned} learning={states.learning} total={deckCards.length} className="mt-2 bg-bg" />
                   <div className="num mt-1.5 text-[13px] text-dim">
-                    <span className="text-text">{states.learning + states.learned}</span> из {deckCards.length}
+                    {states.learning + states.learned} из {deckCards.length}
                   </div>
                 </div>
               </Link>
