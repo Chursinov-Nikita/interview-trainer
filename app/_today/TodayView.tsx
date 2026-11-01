@@ -67,19 +67,17 @@ function Today({ today }: { today: string }) {
               <div className="num text-4xl leading-none font-semibold">{total}</div>
               <div className="mt-2 text-mute">{total ? "к повторению" : "на сегодня всё"}</div>
             </div>
-            <dl className="flex gap-8 pb-0.5">
-              <div>
-                <dt className="text-[13px] text-dim">по расписанию</dt>
-                <dd className="num mt-1 text-2xl leading-none">{due.length}</dd>
-              </div>
-              <div>
-                <dt className="text-[13px] text-dim">новых</dt>
-                <dd className="num mt-1 text-2xl leading-none">{fresh.length}</dd>
-              </div>
-              <div>
-                <dt className="text-[13px] text-dim">уже сегодня</dt>
-                <dd className="num mt-1 text-2xl leading-none">{doneToday}</dd>
-              </div>
+            <dl className="grid w-full grid-cols-3 items-end gap-4 pb-0.5 sm:flex sm:w-auto sm:gap-8">
+              {[
+                { label: "повторить", value: due.length },
+                { label: "новых", value: fresh.length },
+                { label: "сделано", value: doneToday },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex min-w-0 flex-col">
+                  <dt className="text-[13px] leading-tight text-dim">{label}</dt>
+                  <dd className="num mt-1.5 text-2xl leading-none">{value}</dd>
+                </div>
+              ))}
             </dl>
           </div>
           <div className="mt-auto flex flex-wrap gap-2.5 pt-6">
