@@ -67,7 +67,7 @@ function Today({ today }: { today: string }) {
             </div>
             <div className="flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-2 py-3">
               <dt className="mt-1.5 text-[13px] leading-tight text-dim">рекорд</dt>
-              <dd className="num text-xl leading-none">{plu(streak.best, ["день", "дня", "дней"])}</dd>
+              <dd className="num text-xl leading-none">{streak.best}</dd>
             </div>
             {[
               { label: "повторить", value: due.length },
