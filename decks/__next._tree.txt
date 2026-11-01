@@ -1,0 +1,5 @@
+:HL["/interview-trainer/_next/static/chunks/0bdcje_3n2elw.css","style"]
+:HC["/",""]
+2:[["children",{"s":"__PAGE__","h":160}]]
+1:[["children",{"s":"decks","h":96,"c":"$Q2"}]]
+0:{"b":"5eL1gzWJLj7CXTEWV9rAb","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
