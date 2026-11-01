@@ -11,7 +11,7 @@ import { streakOf } from "../lib/queue";
 import { useStore } from "../lib/store";
 
 const LINKS = [
-  { href: "/", label: "Сегодня", icon: House },
+  { href: "/", label: "Главная", icon: House },
   { href: "/decks/", label: "Колоды", icon: Layers },
   { href: "/settings/", label: "Настройки", icon: Settings2 },
 ];
