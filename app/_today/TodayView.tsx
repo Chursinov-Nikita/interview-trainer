@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Dumbbell, Play } from "lucide-react";
+import { CalendarDays, ChevronDown, Dumbbell, Play } from "lucide-react";
 import CardEditor from "../elements/CardEditor";
 import CardRow from "../elements/CardRow";
 import DeckIcon from "../elements/DeckIcon";
+import MonthCalendar from "../elements/MonthCalendar";
 import { PageSkeleton, StateBar, WeekStrip } from "../elements/Visuals";
 import { longDate, plu } from "../lib/dates";
 import { useHour, useReady, useToday } from "../lib/hooks";
@@ -36,6 +37,7 @@ function Today({ today }: { today: string }) {
   const streak = streakOf(log, today);
   const hard = hardest(Object.values(cards));
   const [editCard, setEditCard] = useState<string | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const perDeck = todayByDeck(scope, today);
 
@@ -46,7 +48,7 @@ function Today({ today }: { today: string }) {
         <p className="mt-1 text-mute">{longDate(today)}</p>
       </header>
 
-      <div className="grid gap-[14px] lg:grid-cols-12">
+      <div className="grid gap-[14px] lg:grid-cols-12 lg:items-start">
         <section className="tile flex flex-col p-[22px] lg:col-span-8" aria-labelledby="session-title">
           <h2 id="session-title" className="text-base font-semibold">
             План на сегодня
@@ -93,14 +95,39 @@ function Today({ today }: { today: string }) {
         </section>
 
         <section className="tile p-[22px] lg:col-span-4" aria-labelledby="streak-title">
-          <div className="flex items-baseline justify-between">
+          <div className="flex items-center justify-between">
             <h2 id="streak-title" className="text-base font-semibold">
               Серия
             </h2>
-            <span className="num text-[13px] text-mute">{plu(streak.current, ["день", "дня", "дней"])} подряд</span>
+            <button
+              onClick={() => setCalendarOpen((open) => !open)}
+              aria-expanded={calendarOpen}
+              aria-controls="streak-calendar"
+              className="btn btn-ghost -mr-2 min-h-8 gap-1.5 px-3 text-[13px]"
+            >
+              <CalendarDays size={15} />
+              Календарь
+              <ChevronDown
+                size={15}
+                className={`transition-transform duration-300 ${calendarOpen ? "rotate-180" : ""}`}
+              />
+            </button>
           </div>
           <div className="mt-5">
             <WeekStrip log={log} today={today} />
+          </div>
+          <div
+            id="streak-calendar"
+            inert={!calendarOpen}
+            className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out-expo ${
+              calendarOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            }`}
+          >
+            <div className="-mx-1.5 min-h-0 overflow-hidden px-1.5">
+              <div className="mt-5 border-t border-line pt-5 pb-1.5">
+                <MonthCalendar log={log} today={today} />
+              </div>
+            </div>
           </div>
         </section>
       </div>
@@ -142,7 +169,7 @@ function Today({ today }: { today: string }) {
             );
           })}
         </div>
-        <div className="mt-4 flex justify-between text-[13px] text-dim">
+        <div className="mt-4 flex justify-between text-[13px] text-dim sm:justify-start sm:gap-6">
           <span className="flex items-center gap-1.5">
             <i className="h-1.5 w-3 rounded-full bg-accent" /> выучено
           </span>

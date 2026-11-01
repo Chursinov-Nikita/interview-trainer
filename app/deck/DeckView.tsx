@@ -37,7 +37,9 @@ export default function DeckView() {
   return <Deck id={id} today={today} />;
 }
 
-const FILTERS: { id: CardState | "all"; label: string }[] = [
+const TAGS_SHOWN = 12;
+
+const FILTERS:{ id: CardState | "all"; label: string }[] = [
   { id: "all", label: "Все" },
   { id: "new", label: "Новые" },
   { id: "learning", label: "Учу" },
@@ -57,6 +59,7 @@ function Deck({ id, today }: { id: string; today: string }) {
   const deferred = useDeferredValue(normalize(query.trim()));
   const [filter, setFilter] = useState<CardState | "all">("all");
   const [tag, setTag] = useState<string | null>(null);
+  const [allTags, setAllTags] = useState(false);
   const [editCard, setEditCard] = useState<string | null | "new">(null);
   const [editDeck, setEditDeck] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -159,17 +162,25 @@ function Deck({ id, today }: { id: string; today: string }) {
           </button>
         ))}
         <span className="mx-1.5 w-px shrink-0 bg-line" />
-        {tags.map((t) => (
+        {tags.map((t, i) => (
           <button
             key={t}
             onClick={() => setTag(tag === t ? null : t)}
             className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors ${
               tag === t ? "bg-surface-2 text-text" : "text-dim hover:text-text"
-            }`}
+            } ${i >= TAGS_SHOWN && !allTags && tag !== t ? "sm:hidden" : ""}`}
           >
             #{t}
           </button>
         ))}
+        {tags.length > TAGS_SHOWN && (
+          <button
+            onClick={() => setAllTags((all) => !all)}
+            className="hidden shrink-0 rounded-full px-3 py-1.5 text-[13px] text-mute transition-colors hover:text-text sm:inline-flex"
+          >
+            {allTags ? "свернуть" : `ещё ${tags.length - TAGS_SHOWN}`}
+          </button>
+        )}
       </div>
 
       <div className="space-y-2">
