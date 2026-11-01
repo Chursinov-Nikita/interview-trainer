@@ -111,7 +111,7 @@ function SearchBox() {
         onChange={(e) => setQ(e.target.value)}
         placeholder={total ? `Поиск по ${plu(total, ["вопросу", "вопросам", "вопросам"])}` : "Поиск по карточкам"}
         aria-label="Поиск по карточкам"
-        className="h-9 w-full rounded-full bg-surface pr-4 pl-10 text-sm text-text outline-none placeholder:text-dim focus:ring-1 focus:ring-accent"
+        className="h-9 w-full rounded-full bg-surface pr-4 pl-10 text-sm text-text outline-none placeholder:text-dim focus:ring-1 focus:ring-(--link)"
       />
     </form>
   );

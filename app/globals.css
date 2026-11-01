@@ -14,8 +14,9 @@
 
   --primary: #ffffff;
   --on-primary: #000000;
-  --accent: #30609a;
-  --accent-soft: rgb(48 96 154 / 0.18);
+  --accent: #234a76;
+  --accent-soft: rgb(35 74 118 / 0.2);
+  --link: #8db0d9;
   --chart-rest: #3d3e44;
 
   --again: #f07183;
@@ -51,8 +52,9 @@
 
   --primary: #1d1f20;
   --on-primary: #ffffff;
-  --accent: #1c4f86;
-  --accent-soft: rgb(28 79 134 / 0.12);
+  --accent: #163d68;
+  --accent-soft: rgb(22 61 104 / 0.12);
+  --link: #1f5590;
   --chart-rest: #d4d5d9;
 
   --again: #c4242a;
@@ -208,7 +210,7 @@ label {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--link);
   outline-offset: 2px;
 }
 .input:focus-visible {
@@ -366,7 +368,7 @@ label {
 }
 .input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--link);
 }
 .input::placeholder {
   color: var(--dim);
@@ -728,7 +730,7 @@ label {
   margin-top: 0.3em;
 }
 .md a {
-  color: var(--accent);
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 3px;
 }

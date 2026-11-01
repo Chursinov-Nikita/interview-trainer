@@ -47,13 +47,26 @@ function Today({ today }: { today: string }) {
       </header>
 
       <div className="grid gap-[14px] lg:grid-cols-12">
-        <section className="tile flex flex-col p-[22px] lg:col-span-8" aria-label="План на сегодня">
-          <div className="rounded-2xl bg-surface-2 px-5 py-4 text-center">
-            <div className="num text-5xl leading-none font-semibold">{total}</div>
-            <div className="mt-2 text-mute">
-              {total
-                ? `${plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")} к повторению`
-                : "на сегодня всё"}
+        <section className="tile flex flex-col p-[22px] lg:col-span-8" aria-labelledby="session-title">
+          <h2 id="session-title" className="text-base font-semibold">
+            План на сегодня
+          </h2>
+          <div className="mt-5 grid grid-cols-3 gap-2.5">
+            <div className="col-span-2 flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-3 py-4 text-center">
+              <div className="num text-5xl leading-none font-semibold">{total}</div>
+              <div className="mt-2 text-mute">
+                {total
+                  ? `${plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")} к повторению`
+                  : "на сегодня всё"}
+              </div>
+            </div>
+            <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-2 py-4 text-center">
+              <div className="num text-2xl leading-none font-semibold">{streak.best}</div>
+              <div className="mt-2 text-[13px] leading-tight text-dim">
+                {plu(streak.best, ["день", "дня", "дней"]).replace(/^\d+ /, "")}
+                <br />
+                рекорд
+              </div>
             </div>
           </div>
           <dl className="mt-2.5 grid grid-cols-3 gap-2.5">
