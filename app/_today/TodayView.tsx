@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Dumbbell, Play } from "lucide-react";
+import CardEditor from "../elements/CardEditor";
+import CardRow from "../elements/CardRow";
 import DeckIcon from "../elements/DeckIcon";
 import { PageSkeleton, WeekStrip } from "../elements/Visuals";
 import { longDate, plu } from "../lib/dates";
 import { useHour, useReady, useToday } from "../lib/hooks";
-import { cardsOf, countStates, deckOrder, plan, streakOf, todayByDeck } from "../lib/queue";
+import { cardsOf, countStates, deckOrder, hardest, plan, streakOf, todayByDeck } from "../lib/queue";
 import { useStore } from "../lib/store";
 
 export default function TodayView() {
@@ -32,6 +35,8 @@ function Today({ today }: { today: string }) {
   const doneToday = log[today]?.reviews ?? 0;
   const streak = streakOf(log, today);
   const minutes = Math.max(1, Math.round((Math.min(total, settings.sessionSize) * 20) / 60));
+  const hard = hardest(Object.values(cards));
+  const [editCard, setEditCard] = useState<string | null>(null);
 
   const perDeck = todayByDeck(scope, today);
 
@@ -113,7 +118,7 @@ function Today({ today }: { today: string }) {
             const deckCards = cardsOf(cards, deck.id);
             const states = countStates(deckCards);
             const deckDue = perDeck[deck.id] ?? 0;
-            const learned = deckCards.length ? states.learned / deckCards.length : 0;
+            const size = deckCards.length || 1;
             return (
               <Link
                 key={deck.id}
@@ -128,18 +133,51 @@ function Today({ today }: { today: string }) {
                       {deckDue > 0 ? `${deckDue} сегодня` : "—"}
                     </span>
                   </div>
-                  <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-bg">
-                    <div className="h-full rounded-full bg-accent" style={{ width: `${learned * 100}%` }} />
+                  <div className="mt-2 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-bg">
+                    <div className="bg-accent" style={{ width: `${(states.learned / size) * 100}%` }} />
+                    <div className="bg-chart-rest" style={{ width: `${(states.learning / size) * 100}%` }} />
                   </div>
                   <div className="num mt-1.5 text-[13px] text-dim">
-                    выучено {states.learned} из {deckCards.length}
+                    начато <span className="text-text">{states.learning + states.learned}</span> из {deckCards.length}
+                    {states.learned > 0 && ` · выучено ${states.learned}`}
                   </div>
                 </div>
               </Link>
             );
           })}
         </div>
+        <div className="mt-4 flex gap-5 text-[13px] text-dim">
+          <span className="flex items-center gap-1.5">
+            <i className="h-1.5 w-3 rounded-full bg-accent" /> выучено
+          </span>
+          <span className="flex items-center gap-1.5">
+            <i className="h-1.5 w-3 rounded-full bg-chart-rest" /> учу
+          </span>
+          <span className="flex items-center gap-1.5">
+            <i className="h-1.5 w-3 rounded-full bg-bg" /> новые
+          </span>
+        </div>
       </section>
+
+      <section className="space-y-2" aria-labelledby="hard-title">
+        <div className="px-1 pt-4">
+          <h2 id="hard-title" className="text-base font-semibold">
+            Самые трудные
+          </h2>
+          <p className="mt-0.5 text-mute">Чаще всего вызывают «Не знаю» — стоит перечитать перед собесом</p>
+        </div>
+        {hard.length ? (
+          hard.map((card) => (
+            <CardRow key={card.id} card={card} today={today} onEdit={setEditCard} extra={<span>{decks[card.deckId]?.title}</span>} />
+          ))
+        ) : (
+          <p className="tile px-[22px] py-5 text-mute">
+            Пока трудных карточек нет. Здесь появятся те, на которых чаще всего нажимаешь «Не знаю» или «Почти».
+          </p>
+        )}
+      </section>
+
+      <CardEditor open={!!editCard} onClose={() => setEditCard(null)} cardId={editCard} />
     </div>
   );
 }

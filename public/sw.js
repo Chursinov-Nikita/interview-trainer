@@ -1,6 +1,6 @@
 const CACHE = "kesh-v2";
 const BASE = new URL(self.registration.scope).pathname;
-const ROUTES = ["", "review/", "decks/", "deck/", "stats/", "settings/"];
+const ROUTES = ["", "review/", "decks/", "deck/", "settings/"];
 const FILES = [
   "manifest.webmanifest",
   "logo.svg",

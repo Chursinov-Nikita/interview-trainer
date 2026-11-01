@@ -94,7 +94,7 @@ export const streakOf = (log: Record<string, DayLog>, day: string) => {
 
 export const hardest = (cards: Card[], limit = 8) =>
   cards
-    .filter((c) => c.srs && (c.srs.lapses > 0 || c.srs.ease < 2.3))
+    .filter((c) => c.srs && stateOf(c.srs) !== "learned" && (c.srs.lapses > 0 || c.srs.ease < 2.3))
     .sort((a, b) => b.srs!.lapses - a.srs!.lapses || a.srs!.ease - b.srs!.ease)
     .slice(0, limit);
 

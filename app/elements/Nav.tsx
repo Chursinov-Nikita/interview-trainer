@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { ChartColumn, Flame, House, Layers, Search, Settings2 } from "lucide-react";
+import { Flame, House, Layers, Search, Settings2 } from "lucide-react";
 import Logo from "./Logo";
 import { plu } from "../lib/dates";
 import { useReady, useToday } from "../lib/hooks";
@@ -13,7 +13,6 @@ import { useStore } from "../lib/store";
 const LINKS = [
   { href: "/", label: "Сегодня", icon: House },
   { href: "/decks/", label: "Колоды", icon: Layers },
-  { href: "/stats/", label: "Прогресс", icon: ChartColumn },
   { href: "/settings/", label: "Настройки", icon: Settings2 },
 ];
 
@@ -26,21 +25,26 @@ export default function Nav() {
   const pathname = usePathname();
   if (pathname.startsWith("/review")) return null;
 
+  const current = LINKS.findIndex(({ href }) => isActive(pathname, href));
+  const direction = (index: number) =>
+    current < 0 || index === current ? undefined : [index > current ? "nav-forward" : "nav-back"];
+
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-line bg-bg">
+      <header className="sticky top-0 z-30 border-b border-line bg-bg" style={{ viewTransitionName: "site-header" }}>
         <div className="mx-auto flex h-14 max-w-[calc(1100px+4rem)] items-center gap-6 px-4 sm:px-6 lg:h-16 lg:px-8">
-          <Link href="/" className="flex shrink-0 items-center gap-2.5">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5" transitionTypes={direction(0)}>
             <Logo className="size-7" />
             <span className="text-[15px] font-semibold">Синапс</span>
           </Link>
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Разделы">
-            {LINKS.map(({ href, label }) => {
+            {LINKS.map(({ href, label }, index) => {
               const active = isActive(pathname, href);
               return (
                 <Link
                   key={href}
                   href={href}
+                  transitionTypes={direction(index)}
                   aria-current={active ? "page" : undefined}
                   className={`rounded-full px-3.5 py-1.5 transition-colors ${
                     active ? "bg-surface text-text" : "text-mute hover:text-text"
@@ -58,20 +62,26 @@ export default function Nav() {
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg pb-[env(safe-area-inset-bottom)] lg:hidden">
-        <div className="mx-auto flex max-w-lg justify-around px-2">
-          {LINKS.map(({ href, label, icon: Icon }) => {
-            const active = isActive(pathname, href);
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+        style={{ viewTransitionName: "tab-bar" }}
+        aria-label="Разделы"
+      >
+        <div className="relative mx-auto grid max-w-md grid-cols-3 px-3 py-1.5">
+          {current >= 0 && <span aria-hidden className="tab-pill" style={{ "--tab": current } as React.CSSProperties} />}
+          {LINKS.map(({ href, label, icon: Icon }, index) => {
+            const active = index === current;
             return (
               <Link
                 key={href}
                 href={href}
+                transitionTypes={direction(index)}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-[11px] transition-colors ${
+                className={`tab-link relative flex h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium ${
                   active ? "text-text" : "text-dim"
                 }`}
               >
-                <Icon size={22} strokeWidth={active ? 2 : 1.6} />
+                <Icon size={21} strokeWidth={active ? 2.1 : 1.7} />
                 {label}
               </Link>
             );
@@ -115,9 +125,9 @@ function StreakBadge() {
   const streak = streakOf(log, today);
   return (
     <Link
-      href="/stats/"
+      href="/"
       className={`flex items-center gap-1.5 text-sm ${streak.today ? "text-text" : "text-mute"}`}
-      title={streak.today ? "Сегодня уже занимался" : "Повтори хотя бы одну карточку, чтобы продлить серию"}
+      title={streak.today ? "Сегодня занятие уже было" : "Повтори хотя бы одну карточку, чтобы продлить серию"}
     >
       <Flame size={16} strokeWidth={1.8} fill={streak.today ? "currentColor" : "none"} />
       <span className="num">{plu(streak.current, ["день", "дня", "дней"])}</span>

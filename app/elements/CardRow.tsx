@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Pencil, RotateCcw, Trash } from "lucide-react";
 import Markdown from "./Markdown";
-import { diffDays, inDays } from "../lib/dates";
+import { diffDays, inDays, plu } from "../lib/dates";
 import { stateOf } from "../lib/srs";
 import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
@@ -42,7 +42,7 @@ export default function CardRow({
           <Markdown className={`font-medium ${open ? "" : "line-clamp-3"}`}>{card.front}</Markdown>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-dim">
             <span>{dueLabel(card, today)}</span>
-            {card.srs && card.srs.lapses > 0 && <span className="text-again">забыта {card.srs.lapses}×</span>}
+            {card.srs && card.srs.lapses > 0 && <span className="text-again">«Не знаю» {plu(card.srs.lapses, ["раз", "раза", "раз"])}</span>}
             {extra}
           </div>
         </div>
