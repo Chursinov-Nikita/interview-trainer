@@ -125,7 +125,7 @@ function Deck({ id, today }: { id: string; today: string }) {
         <StateBar learned={states.learned} learning={states.learning} total={cards.length} className="mt-5 bg-surface-2" />
         <p className="mt-2 text-[13px] text-dim">
           <span className="text-mute">Выучено</span> — интервал от трёх недель · <span className="text-mute">Учу</span> — уже
-          видел, но интервал короче
+          встречалась, но интервал короче
         </p>
       </section>
 
