@@ -20,7 +20,7 @@ export default function TodayView() {
 }
 
 const greeting = (hour: number) =>
-  hour < 5 ? "Доброй ночи" : hour < 12 ? "Доброе утро" : hour < 18 ? "Добрый день" : "Добрый вечер";
+  hour < 5 ? "Доброй ночи!" : hour < 12 ? "Доброе утро!" : hour < 18 ? "Добрый день!" : "Добрый вечер!";
 
 function Today({ today }: { today: string }) {
   const hour = useHour();
@@ -51,31 +51,30 @@ function Today({ today }: { today: string }) {
           <h2 id="session-title" className="text-base font-semibold">
             План на сегодня
           </h2>
-          <div className="mt-5 grid grid-cols-3 gap-2.5">
-            <div className="col-span-2 flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-3 py-4 text-center">
-              <div className="num text-5xl leading-none font-semibold">{total}</div>
-              <div className="mt-2 text-mute">
-                {total
-                  ? `${plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")} к повторению`
-                  : "на сегодня всё"}
-              </div>
+          <dl className="mt-5 grid auto-rows-fr grid-cols-3 gap-2.5">
+            <div className="col-span-2 flex flex-row-reverse items-center justify-center gap-2.5 rounded-2xl bg-surface-2 px-3 py-3">
+              <dt className="text-left text-[13px] leading-tight text-mute">
+                {total ? (
+                  <>
+                    {plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")}
+                    <br />к повторению
+                  </>
+                ) : (
+                  "на сегодня всё"
+                )}
+              </dt>
+              <dd className="num text-4xl leading-none font-semibold">{total}</dd>
             </div>
-            <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-2 py-4 text-center">
-              <div className="num text-2xl leading-none font-semibold">{streak.best}</div>
-              <div className="mt-2 text-[13px] leading-tight text-dim">
-                {plu(streak.best, ["день", "дня", "дней"]).replace(/^\d+ /, "")}
-                <br />
-                рекорд
-              </div>
+            <div className="flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-2 py-3">
+              <dt className="mt-1.5 text-[13px] leading-tight text-dim">рекорд</dt>
+              <dd className="num text-xl leading-none">{plu(streak.best, ["день", "дня", "дней"])}</dd>
             </div>
-          </div>
-          <dl className="mt-2.5 grid grid-cols-3 gap-2.5">
             {[
               { label: "повторить", value: due.length },
               { label: "новых", value: fresh.length },
               { label: "сделано", value: doneToday },
             ].map(({ label, value }) => (
-              <div key={label} className="flex flex-col-reverse items-center rounded-2xl bg-surface-2 px-2 py-3">
+              <div key={label} className="flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-2 py-3">
                 <dt className="mt-1.5 text-[13px] leading-tight text-dim">{label}</dt>
                 <dd className="num text-xl leading-none">{value}</dd>
               </div>
