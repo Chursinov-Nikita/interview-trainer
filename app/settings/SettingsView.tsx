@@ -70,22 +70,6 @@ function Settings() {
       </header>
 
       <div className="divide-y divide-line">
-        {!installed && (
-          <Row title="Установка" desc="Иконка на главном экране, полный экран и повторения в метро без сети.">
-            <p className="text-mute">
-              {canPrompt
-                ? "Браузер готов установить «Синапс» как приложение."
-                : ios
-                  ? "В Safari нажми «Поделиться» → «На экран „Домой“»."
-                  : "Открой меню браузера и выбери «Установить приложение» или «Добавить на главный экран»."}
-            </p>
-            {canPrompt && (
-              <button onClick={install} className="btn btn-primary mt-4 min-h-9 px-4 text-sm">
-                <Smartphone size={16} /> Установить
-              </button>
-            )}
-          </Row>
-        )}
 
         <Row title="Внешний вид" desc="Тема и звуки в сессии повторения.">
           <p className="text-[13px] text-dim">Тема</p>
@@ -189,6 +173,21 @@ function Settings() {
           </button>
         </Row>
       </div>
+
+      {!installed && (
+        <div className="flex items-center justify-center gap-2 border-t border-line pt-6 text-center text-[13px] text-dim">
+          <Smartphone size={15} className="shrink-0" />
+          {canPrompt ? (
+            <button onClick={install} className="underline underline-offset-4 hover:text-text">
+              Установить на телефон
+            </button>
+          ) : (
+            <span>
+              {ios ? "«Поделиться» → «На экран „Домой“»" : "Меню браузера → «На главный экран»"}
+            </span>
+          )}
+        </div>
+      )}
 
       <Sheet open={!!pending} onClose={() => setPending(null)} title="Импорт">
         {pending && (
