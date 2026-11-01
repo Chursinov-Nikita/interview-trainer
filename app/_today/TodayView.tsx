@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Dumbbell, Play } from "lucide-react";
 import DeckIcon from "../elements/DeckIcon";
-import MemoryCurve from "../elements/MemoryCurve";
 import { PageSkeleton, WeekStrip } from "../elements/Visuals";
 import { longDate, plu } from "../lib/dates";
 import { useHour, useReady, useToday } from "../lib/hooks";
@@ -113,8 +112,6 @@ function Today({ today }: { today: string }) {
           </div>
         </section>
       </div>
-
-      <MemoryCurve cards={Object.values(cards)} today={today} />
 
       <section className="tile p-[22px]" aria-labelledby="decks-title">
         <div className="flex items-baseline justify-between">

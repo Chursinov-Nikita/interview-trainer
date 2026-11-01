@@ -192,7 +192,7 @@ function Settings() {
         </Row>
 
         <Row title="Сброс прогресса" desc="Все карточки станут новыми, статистика и серия обнулятся. Сами карточки останутся.">
-          <button onClick={() => setConfirmReset(true)} className="btn min-h-9 px-4 text-sm text-again">
+          <button onClick={() => setConfirmReset(true)} className="btn min-h-9 w-full px-4 text-sm text-again sm:w-auto">
             <RotateCcw size={16} /> Сбросить весь прогресс
           </button>
         </Row>

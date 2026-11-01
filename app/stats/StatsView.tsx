@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import CardEditor from "../elements/CardEditor";
 import CardRow from "../elements/CardRow";
 import DeckIcon from "../elements/DeckIcon";
 import { PageSkeleton } from "../elements/Visuals";
-import { addDays, parse, plu, weekday } from "../lib/dates";
+import { addDays, isoOf, parse, plu, WEEKDAYS } from "../lib/dates";
 import { useReady, useToday } from "../lib/hooks";
-import { cardsOf, countStates, deckOrder, hardest, streakOf } from "../lib/queue";
+import { cardsOf, countStates, deckOrder, hardest } from "../lib/queue";
 import { useStore } from "../lib/store";
 import type { DayLog } from "../lib/types";
 
@@ -26,25 +27,15 @@ function Stats({ today }: { today: string }) {
   const [editCard, setEditCard] = useState<string | null>(null);
 
   const cards = Object.values(cardMap);
-  const states = countStates(cards);
-  const streak = streakOf(log, today);
   const week = Array.from({ length: 7 }, (_, i) => log[addDays(today, -i)]).filter(Boolean) as DayLog[];
   const weekReviews = week.reduce((sum, d) => sum + d.reviews, 0);
   const weekRecalled = week.reduce((sum, d) => sum + d.hard + d.easy, 0);
   const accuracy = weekReviews ? Math.round((weekRecalled / weekReviews) * 100) : null;
-  const minutes = Math.round(Object.values(log).reduce((sum, d) => sum + d.ms, 0) / 60000);
   const hard = hardest(cards);
 
   const finding = weekReviews
     ? `За 7 дней — ${plu(weekReviews, ["повторение", "повторения", "повторений"])}, вспоминаешь ${accuracy}%`
     : "За последние 7 дней повторений не было";
-
-  const kpis = [
-    { label: "Серия", value: plu(streak.current, ["день", "дня", "дней"]), note: `рекорд ${streak.best}` },
-    { label: "Выучено", value: String(states.learned), note: `из ${cards.length}` },
-    { label: "Повторений за неделю", value: String(weekReviews), note: `${minutes} мин всего` },
-    { label: "Помню за неделю", value: accuracy === null ? "—" : `${accuracy}%`, note: "почти + знаю" },
-  ];
 
   return (
     <div className="space-y-[14px]">
@@ -53,25 +44,7 @@ function Stats({ today }: { today: string }) {
         <p className="mt-1 text-mute">{finding}</p>
       </header>
 
-      <dl className="tile grid grid-cols-2 gap-y-5 p-[22px] lg:grid-cols-4 lg:divide-x lg:divide-line">
-        {kpis.map((k, i) => (
-          <div key={k.label} className={i ? "lg:pl-5" : ""}>
-            <dt className="text-[13px] text-dim">{k.label}</dt>
-            <dd className="num mt-1 text-2xl">{k.value}</dd>
-            <dd className="num mt-0.5 text-[13px] text-dim">{k.note}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <section className="tile p-[22px]" aria-labelledby="activity-title">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-          <h2 id="activity-title" className="text-base font-semibold">
-            Активность
-          </h2>
-          <span className="text-[13px] text-dim">повторений в день</span>
-        </div>
-        <Heatmap log={log} today={today} />
-      </section>
+      <Calendar log={log} today={today} />
 
       <section className="tile p-[22px]" aria-labelledby="by-deck-title">
         <h2 id="by-deck-title" className="text-base font-semibold">
@@ -96,8 +69,8 @@ function Stats({ today }: { today: string }) {
                     <span className="bg-accent" style={{ width: `${(s.learned / total) * 100}%` }} />
                     <span className="bg-chart-rest" style={{ width: `${(s.learning / total) * 100}%` }} />
                   </span>
-                  <span className="num text-right text-mute">
-                    <span className="text-text">{s.learned}</span> / {deckCards.length}
+                  <span className="num text-right text-mute" title={`начато ${s.learning + s.learned}, из них выучено ${s.learned}`}>
+                    <span className="text-text">{s.learning + s.learned}</span> / {deckCards.length}
                   </span>
                 </Link>
               </li>
@@ -140,48 +113,98 @@ function Stats({ today }: { today: string }) {
   );
 }
 
-const WEEKS = 52;
-const TABLET_WEEKS = 26;
-const PHONE_WEEKS = 17;
-
-const level = (d: DayLog | undefined) => {
-  const n = d?.reviews ?? 0;
-  if (!n) return 0;
-  if (n < 10) return 1;
-  if (n < 25) return 2;
-  if (n < 50) return 3;
-  return 4;
+const monthDays = (year: number, month: number) => {
+  const lead = (new Date(year, month, 1).getDay() + 6) % 7;
+  const size = new Date(year, month + 1, 0).getDate();
+  return [
+    ...Array.from({ length: lead }, () => null),
+    ...Array.from({ length: size }, (_, i) => isoOf(new Date(year, month, i + 1))),
+  ];
 };
 
-const LEVELS = ["bg-surface-2", "bg-accent/30", "bg-accent/55", "bg-accent/80", "bg-accent"];
+function Calendar({ log, today }: { log: Record<string, DayLog>; today: string }) {
+  const [shift, setShift] = useState(0);
+  const studied = (day: string) => (log[day]?.reviews ?? 0) > 0;
+  const firstDay = Object.keys(log).filter(studied).sort()[0] ?? today;
 
-function Heatmap({ log, today }: { log: Record<string, DayLog>; today: string }) {
-  const start = addDays(today, -weekday(today) - (WEEKS - 1) * 7);
+  const current = parse(today);
+  const shown = new Date(current.getFullYear(), current.getMonth() + shift, 1);
+  const year = shown.getFullYear();
+  const month = shown.getMonth();
+  const days = monthDays(year, month);
+  const studiedCount = days.filter((d) => d && studied(d)).length;
+  const monthName = shown.toLocaleDateString("ru-RU", { month: "long" });
+  const canGoBack = isoOf(shown) > firstDay;
+
   return (
-    <div className="mt-5">
-      <div className="grid grid-flow-col grid-rows-7 gap-[3px]">
-        {Array.from({ length: WEEKS * 7 }, (_, i) => {
-          const day = addDays(start, i);
-          const week = Math.floor(i / 7);
-          const future = day > today;
+    <section className="tile p-[22px]" aria-labelledby="calendar-title">
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="calendar-title" className="text-base font-semibold">
+          {monthName[0].toUpperCase() + monthName.slice(1)} {year !== current.getFullYear() ? year : ""}
+        </h2>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setShift((s) => s - 1)}
+            disabled={!canGoBack}
+            className="btn btn-ghost size-9 min-h-0 p-0"
+            aria-label="Предыдущий месяц"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            onClick={() => setShift((s) => s + 1)}
+            disabled={shift === 0}
+            className="btn btn-ghost size-9 min-h-0 p-0"
+            aria-label="Следующий месяц"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+      <p className="mt-1 text-mute">
+        {studiedCount
+          ? `${plu(studiedCount, ["день", "дня", "дней"])} с занятиями`
+          : shift === 0
+            ? "В этом месяце занятий пока не было"
+            : "В этом месяце занятий не было"}
+      </p>
+
+      <div className="mt-5 grid grid-cols-7 gap-y-1.5 text-center">
+        {WEEKDAYS.map((label) => (
+          <span key={label} className="pb-1 text-[13px] text-dim">
+            {label}
+          </span>
+        ))}
+        {days.map((day, i) => {
+          if (!day) return <span key={`empty-${i}`} />;
+          const active = studied(day);
+          const isToday = day === today;
           return (
-            <div
+            <span
               key={day}
-              title={`${parse(day).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}: ${log[day]?.reviews ?? 0}`}
-              className={`aspect-square rounded-sm ${future ? "opacity-0" : LEVELS[level(log[day])]} ${
-                day === today ? "ring-1 ring-text" : ""
-              } ${week < WEEKS - PHONE_WEEKS ? "max-md:hidden" : ""} ${week < WEEKS - TABLET_WEEKS ? "md:max-lg:hidden" : ""}`}
-            />
+              title={active ? plu(log[day].reviews, ["повторение", "повторения", "повторений"]) : undefined}
+              className={`num mx-auto grid size-9 place-items-center rounded-full text-sm sm:size-10 ${
+                active
+                  ? "bg-accent font-semibold text-[#0e1a24]"
+                  : day > today
+                    ? "text-dim opacity-50"
+                    : "text-mute"
+              } ${isToday ? "ring-2 ring-text ring-offset-2 ring-offset-surface" : ""}`}
+            >
+              {parse(day).getDate()}
+            </span>
           );
         })}
       </div>
-      <div className="mt-3 flex items-center justify-end gap-1 text-[13px] text-dim">
-        меньше
-        {LEVELS.map((c) => (
-          <i key={c} className={`size-3 rounded-[3px] ${c}`} />
-        ))}
-        больше
+
+      <div className="mt-4 flex gap-5 text-[13px] text-dim">
+        <span className="flex items-center gap-1.5">
+          <i className="size-2.5 rounded-full bg-accent" /> были занятия
+        </span>
+        <span className="flex items-center gap-1.5">
+          <i className="size-2.5 rounded-full ring-2 ring-text" /> сегодня
+        </span>
       </div>
-    </div>
+    </section>
   );
 }

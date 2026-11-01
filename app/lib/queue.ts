@@ -92,15 +92,6 @@ export const streakOf = (log: Record<string, DayLog>, day: string) => {
   return { current, best, today: active(day) };
 };
 
-export const forecast = (cards: Card[], day: string, days = 7) =>
-  Array.from({ length: days }, (_, i) => {
-    const d = addDays(day, i);
-    return {
-      day: d,
-      count: cards.filter((c) => c.srs && (i === 0 ? c.srs.due <= d : c.srs.due === d)).length,
-    };
-  });
-
 export const hardest = (cards: Card[], limit = 8) =>
   cards
     .filter((c) => c.srs && (c.srs.lapses > 0 || c.srs.ease < 2.3))
