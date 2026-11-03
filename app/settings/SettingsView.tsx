@@ -73,7 +73,7 @@ function Settings() {
 
         <Row title="Внешний вид" desc="Тема и звуки в сессии повторения.">
           <p className="text-[13px] text-dim">Тема</p>
-          <div className="mt-2 inline-grid grid-cols-3 gap-1 rounded-full bg-surface-2 p-1">
+          <div className="mt-2 inline-grid grid-cols-3 gap-1 rounded-full bg-surface-2 p-1 lg:grid">
             {THEMES.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -289,7 +289,7 @@ function Row({
   className?: string;
 }) {
   return (
-    <section className={`${className} gap-4 py-8 first:pt-0 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)] md:gap-10`}>
+    <section className={`${className} gap-4 py-8 first:pt-0 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)] md:gap-10 lg:items-start`}>
       <div className="md:pt-[22px]">
         <h2 className="text-base font-medium">{title}</h2>
         <p className="mt-1 text-mute">{desc}</p>
