@@ -9,7 +9,7 @@ import DeckIcon from "../elements/DeckIcon";
 import MonthCalendar from "../elements/MonthCalendar";
 import { PageSkeleton, StateBar, WeekStrip } from "../elements/Visuals";
 import { longDate, plu } from "../lib/dates";
-import { useDesktopPopover, useHour, useReady, useToday } from "../lib/hooks";
+import { useHour, useReady, useToday } from "../lib/hooks";
 import { cardsOf, countStates, deckOrder, hardest, plan, streakOf, todayByDeck } from "../lib/queue";
 import { useStore } from "../lib/store";
 
@@ -37,7 +37,7 @@ function Today({ today }: { today: string }) {
   const streak = streakOf(log, today);
   const hard = hardest(Object.values(cards));
   const [editCard, setEditCard] = useState<string | null>(null);
-  const [calendarOpen, setCalendarOpen, streakArea] = useDesktopPopover();
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const perDeck = todayByDeck(scope, today);
 
@@ -53,8 +53,8 @@ function Today({ today }: { today: string }) {
           <h2 id="session-title" className="text-base font-semibold">
             План на сегодня
           </h2>
-          <dl className="mt-5 grid auto-rows-fr grid-cols-3 gap-2.5 lg:grid-cols-5">
-            <div className="col-span-2 flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-3 py-3 lg:justify-start">
+          <dl className="mt-5 grid auto-rows-fr grid-cols-3 gap-2.5 lg:flex-1">
+            <div className="col-span-2 flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-3 py-3">
               <dt className="mt-1.5 text-[13px] leading-tight text-dim">
                 {total
                   ? `${plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")} к повторению`
@@ -62,18 +62,18 @@ function Today({ today }: { today: string }) {
               </dt>
               <dd className="num text-2xl leading-none font-semibold">{total}</dd>
             </div>
-            <div className="flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-2 py-3 lg:hidden">
+            <div className="flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-2 py-3">
               <dt className="mt-1.5 text-[13px] leading-tight text-dim">рекорд</dt>
-              <dd className="num text-xl leading-none">{streak.best}</dd>
+              <dd className="num text-xl leading-none lg:leading-6">{streak.best}</dd>
             </div>
             {[
               { label: "повторить", value: due.length },
               { label: "новых", value: fresh.length },
               { label: "сделано", value: doneToday },
             ].map(({ label, value }) => (
-              <div key={label} className="flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-2 py-3 lg:justify-start">
+              <div key={label} className="flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-2 py-3">
                 <dt className="mt-1.5 text-[13px] leading-tight text-dim">{label}</dt>
-                <dd className="num text-xl leading-none">{value}</dd>
+                <dd className="num text-xl leading-none lg:leading-6">{value}</dd>
               </div>
             ))}
           </dl>
@@ -94,7 +94,7 @@ function Today({ today }: { today: string }) {
           </div>
         </section>
 
-        <section ref={streakArea} className="tile relative p-[22px] lg:col-span-4 lg:flex lg:flex-col" aria-labelledby="streak-title">
+        <section className="tile p-[22px] lg:hidden" aria-labelledby="streak-title">
           <div className="flex items-center justify-between">
             <h2 id="streak-title" className="text-base font-semibold">
               Серия
@@ -103,7 +103,7 @@ function Today({ today }: { today: string }) {
               onClick={() => setCalendarOpen((open) => !open)}
               aria-expanded={calendarOpen}
               aria-controls="streak-calendar"
-              className="btn btn-ghost -mr-2 min-h-8 gap-1.5 px-3 text-[13px] lg:-my-1"
+              className="btn btn-ghost -mr-2 min-h-8 gap-1.5 px-3 text-[13px]"
             >
               <CalendarDays size={15} />
               Календарь
@@ -116,25 +116,23 @@ function Today({ today }: { today: string }) {
           <div className="mt-5">
             <WeekStrip log={log} today={today} />
           </div>
-          <dl className="mt-auto hidden pt-6 lg:block">
-            <div className="flex min-h-12 flex-row-reverse items-center justify-between rounded-full bg-surface-2 px-5">
-              <dd className="num text-xl leading-none">{streak.best}</dd>
-              <dt className="text-[13px] leading-tight text-dim">рекорд</dt>
-            </div>
-          </dl>
           <div
             id="streak-calendar"
             inert={!calendarOpen}
-            className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out-expo lg:absolute lg:inset-x-0 lg:top-full lg:z-20 lg:mt-2 ${
+            className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out-expo ${
               calendarOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
             }`}
           >
-            <div className="-mx-1.5 min-h-0 overflow-hidden px-1.5 lg:mx-0 lg:rounded-[1.25rem] lg:bg-surface lg:px-0 lg:shadow-2xl lg:ring-1 lg:ring-line-strong">
-              <div className="mt-5 border-t border-line pt-5 pb-1.5 lg:mt-0 lg:border-t-0 lg:p-[22px]">
+            <div className="-mx-1.5 min-h-0 overflow-hidden px-1.5">
+              <div className="mt-5 border-t border-line pt-5 pb-1.5">
                 <MonthCalendar log={log} today={today} />
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="tile hidden p-[22px] lg:col-span-4 lg:block" aria-label="Календарь занятий">
+          <MonthCalendar log={log} today={today} />
         </section>
       </div>
 

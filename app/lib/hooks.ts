@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { today } from "./dates";
 import { isSoundOn, subscribeSound } from "./sound";
 import { getServerTheme, getTheme, subscribeTheme } from "./theme";
@@ -45,29 +45,6 @@ export const useCountUp = (target: number, duration = 900, delay = 0) => {
     return () => cancelAnimationFrame(frame);
   }, [target, duration, delay]);
   return value;
-};
-
-const isDesktop = () => window.matchMedia("(min-width: 64rem)").matches;
-
-export const useDesktopPopover = () => {
-  const [open, setOpen] = useState(false);
-  const area = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (isDesktop() && !area.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (isDesktop() && event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-  return [open, setOpen, area] as const;
 };
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };

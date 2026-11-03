@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { isoOf, parse, plu, WEEKDAYS } from "../lib/dates";
 import type { DayLog } from "../lib/types";
 
+const MONTH_CELLS = 42;
+
 const monthDays = (year: number, month: number) => {
   const lead = (new Date(year, month, 1).getDay() + 6) % 7;
   const size = new Date(year, month + 1, 0).getDate();
@@ -79,6 +81,9 @@ export default function MonthCalendar({ log, today }: { log: Record<string, DayL
             </span>
           );
         })}
+        {Array.from({ length: MONTH_CELLS - days.length }, (_, i) => (
+          <span key={`filler-${i}`} className="hidden size-9 lg:block" />
+        ))}
       </div>
     </div>
   );
