@@ -136,6 +136,34 @@ export function StateBar({
   );
 }
 
+export function ProgressRing({ learned, learning, total }: { learned: number; learning: number; total: number }) {
+  const share = (n: number) => (n / (total || 1)) * 100;
+  const percent = Math.round(share(learned));
+  const arc = "fill-none stroke-[9]";
+  return (
+    <div className="relative size-24 shrink-0" role="img" aria-label={`Выучено ${percent}%`}>
+      <svg viewBox="0 0 100 100" className="size-full -rotate-90">
+        <circle cx="50" cy="50" r="44" className={`${arc} stroke-surface-2`} />
+        {learning > 0 && (
+          <circle
+            cx="50"
+            cy="50"
+            r="44"
+            pathLength={100}
+            strokeDasharray={`${share(learning)} 100`}
+            strokeDashoffset={-share(learned)}
+            className={`${arc} stroke-chart-rest`}
+          />
+        )}
+        {learned > 0 && (
+          <circle cx="50" cy="50" r="44" pathLength={100} strokeDasharray={`${share(learned)} 100`} className={`${arc} stroke-accent`} />
+        )}
+      </svg>
+      <span className="num absolute inset-0 grid place-items-center text-xl">{percent}%</span>
+    </div>
+  );
+}
+
 export function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`skeleton ${className}`} />;
 }

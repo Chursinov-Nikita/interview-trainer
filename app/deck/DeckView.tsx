@@ -9,7 +9,7 @@ import CardRow from "../elements/CardRow";
 import DeckEditor from "../elements/DeckEditor";
 import DeckIcon from "../elements/DeckIcon";
 import Sheet from "../elements/Sheet";
-import { PageSkeleton, StateBar } from "../elements/Visuals";
+import { PageSkeleton, ProgressRing } from "../elements/Visuals";
 import { plu } from "../lib/dates";
 import { useReady, useToday } from "../lib/hooks";
 import { downloadJson, slug } from "../lib/io";
@@ -111,26 +111,20 @@ function Deck({ id, today }: { id: string; today: string }) {
         </div>
       </header>
 
-      <section className="tile p-[22px]" aria-label="Прогресс колоды">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-mute">
-            <span className="num text-2xl text-text">{states.learned}</span> из {cards.length} выучено
-          </p>
-          <span className="num text-sm text-mute">{cards.length ? Math.round((states.learned / cards.length) * 100) : 0}%</span>
-        </div>
-        <StateBar learned={states.learned} learning={states.learning} total={cards.length} className="mt-3 bg-surface-2" />
-        <dl className="mt-5 grid grid-cols-3 gap-3">
+      <section className="tile flex items-center gap-6 p-[22px]" aria-label="Прогресс колоды">
+        <ProgressRing learned={states.learned} learning={states.learning} total={cards.length} />
+        <dl className="min-w-0 flex-1 space-y-2.5 sm:grid sm:grid-cols-3 sm:gap-4 sm:space-y-0">
           {[
             { label: "новые", value: states.new, mark: "bg-surface-2 ring-1 ring-line-strong" },
             { label: "учу", value: states.learning, mark: "bg-chart-rest" },
             { label: "выучено", value: states.learned, mark: "bg-accent" },
           ].map((s) => (
-            <div key={s.label} className="flex flex-col-reverse">
-              <dt className="mt-1.5 flex items-center gap-1.5 text-[13px] leading-tight text-dim">
+            <div key={s.label} className="flex items-center justify-between gap-3 sm:flex-col-reverse sm:items-start sm:justify-end sm:gap-1.5">
+              <dt className="flex items-center gap-1.5 text-[13px] leading-tight text-dim">
                 <i className={`h-1.5 w-3 shrink-0 rounded-full ${s.mark}`} />
                 {s.label}
               </dt>
-              <dd className="num text-xl leading-none">{s.value}</dd>
+              <dd className="num text-base leading-none sm:text-2xl">{s.value}</dd>
             </div>
           ))}
         </dl>
