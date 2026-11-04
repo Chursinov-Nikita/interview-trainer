@@ -195,7 +195,7 @@ function Deck({ id, today }: { id: string; today: string }) {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 pt-6">
+      <div className="grid gap-2 pt-6 sm:grid-cols-2">
         <button
           onClick={() => {
             downloadJson(exportData(id, false), `synapse-${slug(deck.title)}.json`);
