@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useState } from "react";
-import { ChevronLeft, Download, Dumbbell, Pencil, Play, Plus, Search, Trash, X } from "lucide-react";
+import { ChevronLeft, Download, Dumbbell, Play, Plus, Search, Trash, X } from "lucide-react";
 import CardEditor from "../elements/CardEditor";
 import CardRow from "../elements/CardRow";
 import DeckEditor from "../elements/DeckEditor";
@@ -87,16 +87,19 @@ function Deck({ id, today }: { id: string; today: string }) {
 
       <header className="flex flex-wrap items-start justify-between gap-4 pb-4 lg:flex-nowrap">
         <div className="flex min-w-0 items-start gap-3.5">
-          <DeckIcon icon={deck.icon} />
+          <button
+            onClick={() => setEditDeck(true)}
+            className="shrink-0 rounded-[0.625rem] transition-[filter] hover:brightness-125 active:brightness-90"
+            aria-label="Изменить колоду"
+          >
+            <DeckIcon icon={deck.icon} />
+          </button>
           <div className="min-w-0">
             <h1 className="text-2xl font-medium wrap-anywhere">{deck.title}</h1>
             {deck.description && <p className="mt-1 text-mute wrap-anywhere">{deck.description}</p>}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:flex-nowrap">
-          <button onClick={() => setEditDeck(true)} className="btn btn-ghost size-9 min-h-0 p-0" aria-label="Изменить колоду">
-            <Pencil size={16} />
-          </button>
           <Link href={`/review/?mode=cram&deck=${encodeURIComponent(id)}`} className="btn min-h-9 px-4 text-sm">
             <Dumbbell size={16} /> Тренировка
           </Link>
