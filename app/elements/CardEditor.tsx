@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, Pencil } from "lucide-react";
-import Markdown from "./Markdown";
+import { useEffect, useRef, useState } from "react";
 import Sheet from "./Sheet";
-import { deckOrder } from "../lib/queue";
 import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
 
@@ -27,17 +24,20 @@ const parseTags = (raw: string) =>
   [...new Set(raw.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))];
 
 function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: string | null; onDone: () => void }) {
-  const decks = useStore((s) => s.decks);
   const card = useStore((s) => (cardId ? s.cards[cardId] : undefined));
   const addCard = useStore((s) => s.addCard);
   const updateCard = useStore((s) => s.updateCard);
 
-  const ordered = deckOrder(decks);
-  const [deck, setDeck] = useState(card?.deckId ?? deckId ?? ordered[0]?.id ?? "");
+  const deck = card?.deckId ?? deckId;
+  const isNew = !cardId;
   const [front, setFront] = useState(card?.front ?? "");
   const [back, setBack] = useState(card?.back ?? "");
   const [tags, setTags] = useState(card?.tags.join(", ") ?? "");
-  const [preview, setPreview] = useState(false);
+  const question = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (isNew && window.matchMedia("(pointer: fine)").matches) question.current?.focus({ preventScroll: true });
+  }, [isNew]);
 
   const valid = deck && front.trim() && back.trim();
 
@@ -57,8 +57,6 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
     }
   };
 
-  if (!ordered.length) return <p className="pb-4 text-mute">Сначала создай колоду.</p>;
-
   return (
     <form
       className="space-y-4"
@@ -68,68 +66,25 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
         save();
       }}
     >
-      <div className="flex items-center gap-2">
-        <select value={deck} onChange={(e) => setDeck(e.target.value)} className="input flex-1 font-medium">
-          {ordered.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.title}
-            </option>
-          ))}
-        </select>
-        <div className="flex shrink-0 rounded-full bg-bg p-1">
-          <button
-            type="button"
-            onClick={() => setPreview(false)}
-            className={`grid size-9 place-items-center rounded-full lg:size-8 ${!preview ? "bg-surface-2 text-text" : "text-dim"}`}
-            aria-label="Редактор"
-          >
-            <Pencil size={17} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setPreview(true)}
-            className={`grid size-9 place-items-center rounded-full lg:size-8 ${preview ? "bg-surface-2 text-text" : "text-dim"}`}
-            aria-label="Превью"
-          >
-            <Eye size={17} />
-          </button>
-        </div>
-      </div>
-
-      {preview ? (
-        <div className="space-y-3">
-          <div className="rounded-2xl bg-bg p-4">
-            <p className="eyebrow mb-2">Вопрос</p>
-            <Markdown className="text-lg font-medium">{front || "_пусто_"}</Markdown>
-          </div>
-          <div className="rounded-2xl bg-bg p-4">
-            <p className="eyebrow mb-2">Ответ</p>
-            <Markdown>{back || "_пусто_"}</Markdown>
-          </div>
-        </div>
-      ) : (
-        <>
-          <label className="block space-y-1.5">
-            <span className="eyebrow">Вопрос</span>
-            <textarea
-              value={front}
-              onChange={(e) => setFront(e.target.value)}
-              placeholder="Чем type отличается от interface?"
-              className="input min-h-20 resize-y field-sizing-content"
-              autoFocus={!card}
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="eyebrow">Ответ · Markdown</span>
-            <textarea
-              value={back}
-              onChange={(e) => setBack(e.target.value)}
-              placeholder={"Кратко и по делу.\n\n```ts\nconst x = 1;\n```"}
-              className="input min-h-40 resize-y font-mono text-base field-sizing-content lg:text-sm"
-            />
-          </label>
-        </>
-      )}
+      <label className="block space-y-1.5">
+        <span className="eyebrow">Вопрос</span>
+        <textarea
+          ref={question}
+          value={front}
+          onChange={(e) => setFront(e.target.value)}
+          placeholder="Чем type отличается от interface?"
+          className="input min-h-20 resize-y field-sizing-content"
+        />
+      </label>
+      <label className="block space-y-1.5">
+        <span className="eyebrow">Ответ · Markdown</span>
+        <textarea
+          value={back}
+          onChange={(e) => setBack(e.target.value)}
+          placeholder={"Кратко и по делу.\n\n```ts\nconst x = 1;\n```"}
+          className="input min-h-40 resize-y font-mono text-base field-sizing-content lg:text-sm"
+        />
+      </label>
 
       <label className="block space-y-1.5">
         <span className="eyebrow">Теги через запятую</span>
