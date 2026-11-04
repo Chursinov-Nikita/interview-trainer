@@ -85,7 +85,7 @@ function Deck({ id, today }: { id: string; today: string }) {
         <ChevronLeft size={16} /> Колоды
       </Link>
 
-      <header className="flex flex-wrap items-start justify-between gap-4 pb-4 lg:flex-nowrap">
+      <header className="pb-4">
         <div className="flex min-w-0 items-start gap-3.5">
           <button
             onClick={() => setEditDeck(true)}
@@ -99,12 +99,12 @@ function Deck({ id, today }: { id: string; today: string }) {
             {deck.description && <p className="mt-1 text-mute wrap-anywhere">{deck.description}</p>}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:flex-nowrap">
-          <Link href={`/review/?mode=cram&deck=${encodeURIComponent(id)}`} className="btn min-h-9 px-4 text-sm">
+        <div className="mt-5 grid auto-cols-fr grid-flow-col gap-2">
+          <Link href={`/review/?mode=cram&deck=${encodeURIComponent(id)}`} className="btn min-h-12 px-3 text-sm">
             <Dumbbell size={16} /> Тренировка
           </Link>
           {due > 0 && (
-            <Link href={`/review/?deck=${encodeURIComponent(id)}`} className="btn btn-primary min-h-9 px-4 text-sm">
+            <Link href={`/review/?deck=${encodeURIComponent(id)}`} className="btn btn-primary min-h-12 px-3 text-sm">
               <Play size={14} fill="currentColor" /> Учить · {due}
             </Link>
           )}
