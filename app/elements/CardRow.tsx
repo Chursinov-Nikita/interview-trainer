@@ -60,7 +60,7 @@ export default function CardRow({
               ))}
             </div>
           )}
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <button onClick={() => onEdit(card.id)} className="btn min-h-9 px-3.5 text-sm">
               <Pencil size={16} /> Изменить
             </button>
@@ -82,7 +82,7 @@ export default function CardRow({
                 toast("Карточка удалена");
               }}
               onBlur={() => setConfirm(false)}
-              className={`btn min-h-9 px-3.5 text-sm ${confirm ? "btn-again" : "btn-ghost text-again"}`}
+              className={`btn min-h-9 px-3.5 text-sm ${card.srs ? "col-span-2" : ""} ${confirm ? "btn-again" : "btn-ghost text-again"}`}
             >
               <Trash size={16} /> {confirm ? "Точно удалить?" : "Удалить"}
             </button>
