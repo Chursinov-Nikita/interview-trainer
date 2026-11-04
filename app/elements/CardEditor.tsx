@@ -81,7 +81,7 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
         <textarea
           value={back}
           onChange={(e) => setBack(e.target.value)}
-          placeholder="Как на это ответить"
+          placeholder="Как на это ответить?"
           className="input min-h-40 resize-y font-mono text-base field-sizing-content lg:text-sm"
         />
       </label>
