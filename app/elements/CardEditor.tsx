@@ -80,7 +80,7 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
           <button
             type="button"
             onClick={() => setPreview(false)}
-            className={`grid size-8 place-items-center rounded-full ${!preview ? "bg-surface-2 text-text" : "text-dim"}`}
+            className={`grid size-9 place-items-center rounded-full lg:size-8 ${!preview ? "bg-surface-2 text-text" : "text-dim"}`}
             aria-label="Редактор"
           >
             <Pencil size={17} />
@@ -88,7 +88,7 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
           <button
             type="button"
             onClick={() => setPreview(true)}
-            className={`grid size-8 place-items-center rounded-full ${preview ? "bg-surface-2 text-text" : "text-dim"}`}
+            className={`grid size-9 place-items-center rounded-full lg:size-8 ${preview ? "bg-surface-2 text-text" : "text-dim"}`}
             aria-label="Превью"
           >
             <Eye size={17} />
@@ -125,7 +125,7 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
               value={back}
               onChange={(e) => setBack(e.target.value)}
               placeholder={"Кратко и по делу.\n\n```ts\nconst x = 1;\n```"}
-              className="input min-h-40 resize-y font-mono text-sm field-sizing-content"
+              className="input min-h-40 resize-y font-mono text-base field-sizing-content lg:text-sm"
             />
           </label>
         </>
@@ -136,7 +136,7 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
         <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="generics, infer" className="input" />
       </label>
 
-      <div className="flex gap-3 pt-1">
+      <div className="sticky bottom-0 -mx-5 flex gap-3 bg-surface-solid px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <button type="button" onClick={onDone} className="btn btn-outline flex-1">
           Отмена
         </button>

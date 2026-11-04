@@ -33,7 +33,7 @@ export default function Nav() {
     <>
       <header className="sticky top-0 z-30 border-b border-line bg-bg" style={{ viewTransitionName: "site-header" }}>
         <div className="mx-auto flex h-14 max-w-[calc(1100px+4rem)] items-center gap-6 px-4 sm:px-6 lg:h-16 lg:px-8">
-          <Link href="/" className="flex shrink-0 items-center gap-2.5" transitionTypes={direction(0)}>
+          <Link href="/" className="tap-area flex shrink-0 items-center gap-2.5" transitionTypes={direction(0)}>
             <Logo className="size-7" />
             <span className="text-[15px] font-semibold">Синапс</span>
           </Link>
@@ -126,7 +126,7 @@ function StreakBadge() {
   return (
     <Link
       href="/"
-      className={`flex items-center gap-1.5 text-sm ${streak.today ? "text-text" : "text-mute"}`}
+      className={`tap-area flex items-center gap-1.5 text-sm ${streak.today ? "text-text" : "text-mute"}`}
       title={streak.today ? "Сегодня занятие уже было" : "Повтори хотя бы одну карточку, чтобы продлить серию"}
     >
       <Flame size={16} strokeWidth={1.8} fill={streak.today ? "currentColor" : "none"} />

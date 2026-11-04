@@ -103,15 +103,15 @@ function Decks({ today, initialQuery }: { today: string; initialQuery: string })
                 >
                   <DeckIcon icon={deck.icon} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 lg:flex-nowrap">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-base font-medium">{deck.title}</span>
+                          <span className="min-w-0 text-base font-medium wrap-anywhere">{deck.title}</span>
                           {due > 0 && (
                             <span className="num rounded-full bg-surface-2 px-2.5 py-0.5 text-xs">{due} сегодня</span>
                           )}
                         </div>
-                        <p className="mt-1 text-mute">
+                        <p className="mt-1 text-mute wrap-anywhere">
                           {deck.description || plu(deckCards.length, ["вопрос", "вопроса", "вопросов"])}
                         </p>
                       </div>

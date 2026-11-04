@@ -55,7 +55,7 @@ function Today({ today }: { today: string }) {
           </h2>
           <dl className="mt-5 grid auto-rows-fr grid-cols-3 gap-2.5 lg:flex-1">
             <div className="col-span-2 flex flex-col-reverse items-center justify-center rounded-2xl bg-surface-2 px-3 py-3">
-              <dt className="mt-1.5 text-[13px] leading-tight text-dim">
+              <dt className="mt-1.5 text-center text-[13px] leading-tight text-dim">
                 {total
                   ? `${plu(total, ["карточка", "карточки", "карточек"]).replace(/^\d+ /, "")} к повторению`
                   : "на сегодня всё"}
@@ -103,7 +103,7 @@ function Today({ today }: { today: string }) {
               onClick={() => setCalendarOpen((open) => !open)}
               aria-expanded={calendarOpen}
               aria-controls="streak-calendar"
-              className="btn btn-ghost -mr-2 min-h-8 gap-1.5 px-3 text-[13px]"
+              className="btn btn-ghost -my-1 -mr-2 min-h-10 gap-1.5 px-3 text-[13px]"
             >
               <CalendarDays size={15} />
               Календарь
@@ -141,11 +141,11 @@ function Today({ today }: { today: string }) {
           <h2 id="decks-title" className="text-base font-semibold">
             Колоды
           </h2>
-          <Link href="/decks/" className="text-sm text-mute hover:text-text">
+          <Link href="/decks/" className="tap-area text-sm text-mute hover:text-text">
             Все {ordered.length}
           </Link>
         </div>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {ordered.map((deck) => {
             const deckCards = cardsOf(cards, deck.id);
             const states = countStates(deckCards);
@@ -159,7 +159,7 @@ function Today({ today }: { today: string }) {
                 <DeckIcon icon={deck.icon} size="sm" className="bg-bg" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="truncate font-medium">{deck.title}</span>
+                    <span className="truncate font-medium max-[359px]:whitespace-normal">{deck.title}</span>
                     <span className="num shrink-0 text-[13px] text-mute">
                       {deckDue > 0 ? `${deckDue} сегодня` : "—"}
                     </span>
@@ -181,7 +181,7 @@ function Today({ today }: { today: string }) {
             <i className="h-1.5 w-3 rounded-full bg-chart-rest" /> учу
           </span>
           <span className="flex items-center gap-1.5">
-            <i className="h-1.5 w-3 rounded-full bg-bg" /> новые
+            <i className="h-1.5 w-3 rounded-full bg-bg ring-1 ring-line-strong" /> новые
           </span>
         </div>
       </section>

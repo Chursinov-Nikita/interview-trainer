@@ -188,7 +188,8 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
   }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (face !== "back" || anim) return;
+    if (face !== "back" || anim || e.pointerType === "mouse") return;
+    if (e.target instanceof Element && e.target.closest("pre, table")) return;
     dragRef.current = { x: e.clientX, y: e.clientY, active: false };
   };
   const onPointerMove = (e: React.PointerEvent) => {

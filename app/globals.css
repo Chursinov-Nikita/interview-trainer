@@ -222,6 +222,15 @@ label {
   border-radius: 1.25rem;
 }
 
+@utility tap-area {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -0.75rem -0.375rem;
+  }
+}
+
 @utility eyebrow {
   font-size: 0.75rem;
   font-weight: 500;
@@ -370,6 +379,11 @@ label {
 .input:focus {
   outline: none;
   border-color: var(--link);
+}
+@media (pointer: coarse) {
+  .input {
+    font-size: 1rem;
+  }
 }
 .input::placeholder {
   color: var(--dim);

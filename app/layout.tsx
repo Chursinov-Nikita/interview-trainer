@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description:
     "Карточки по TypeScript, React, Redux/Zustand, SQL и Prisma с интервальными повторениями SM-2. Работает офлайн.",
   appleWebApp: { capable: true, title: "Синапс", statusBarStyle: "black" },
-  icons: { apple: asset("/icons/icon-192.png") },
+  icons: { icon: asset("/icon.svg"), apple: asset("/icons/icon-192.png") },
 };
 
 export const viewport: Viewport = {

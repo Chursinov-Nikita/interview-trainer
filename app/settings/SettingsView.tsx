@@ -79,7 +79,7 @@ function Settings() {
                 key={id}
                 onClick={() => setTheme(id)}
                 aria-pressed={theme === id}
-                className={`flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                className={`flex items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm transition-colors lg:py-1.5 ${
                   theme === id ? "bg-bg text-text" : "text-mute hover:text-text"
                 }`}
               >
@@ -137,7 +137,7 @@ function Settings() {
         </Row>
 
         <Row title="Данные" desc="Сохрани копию, чтобы перенести прогресс на другой телефон или ноутбук.">
-          <div className="grid grid-cols-2 gap-2 sm:flex">
+          <div className="grid grid-cols-2 gap-2 sm:flex lg:grid">
             <button
               onClick={() => {
                 downloadJson(exportData(), `synapse-backup-${today()}.json`);
@@ -289,7 +289,7 @@ function Row({
   className?: string;
 }) {
   return (
-    <section className={`${className} gap-4 py-8 first:pt-0 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)] md:gap-10 lg:items-start`}>
+    <section className={`${className} gap-4 py-8 first:pt-0 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)] md:items-start md:gap-10`}>
       <div className="md:pt-[22px]">
         <h2 className="text-base font-medium">{title}</h2>
         <p className="mt-1 text-mute">{desc}</p>

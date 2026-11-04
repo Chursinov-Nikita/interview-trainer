@@ -81,19 +81,19 @@ function Deck({ id, today }: { id: string; today: string }) {
 
   return (
     <div className="space-y-[14px]">
-      <Link href="/decks/" className="inline-flex items-center gap-1 text-sm text-mute hover:text-text">
+      <Link href="/decks/" className="tap-area inline-flex items-center gap-1 text-sm text-mute hover:text-text">
         <ChevronLeft size={16} /> Колоды
       </Link>
 
-      <header className="flex flex-wrap items-start justify-between gap-4 pb-4">
+      <header className="flex flex-wrap items-start justify-between gap-4 pb-4 lg:flex-nowrap">
         <div className="flex min-w-0 items-start gap-3.5">
           <DeckIcon icon={deck.icon} />
           <div className="min-w-0">
-            <h1 className="text-2xl font-medium">{deck.title}</h1>
-            {deck.description && <p className="mt-1 text-mute">{deck.description}</p>}
+            <h1 className="text-2xl font-medium wrap-anywhere">{deck.title}</h1>
+            {deck.description && <p className="mt-1 text-mute wrap-anywhere">{deck.description}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:flex-nowrap">
           <button onClick={() => setEditDeck(true)} className="btn btn-ghost size-9 min-h-0 p-0" aria-label="Изменить колоду">
             <Pencil size={16} />
           </button>
@@ -154,19 +154,19 @@ function Deck({ id, today }: { id: string; today: string }) {
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+            className={`shrink-0 rounded-full px-3.5 py-2 text-sm transition-colors sm:py-1.5 ${
               filter === f.id ? "bg-surface-2 text-text" : "text-mute hover:text-text"
             }`}
           >
             {f.label}
           </button>
         ))}
-        <span className="mx-1.5 w-px shrink-0 bg-line" />
+        {tags.length > 0 && <span className="mx-1.5 w-px shrink-0 bg-line" />}
         {tags.map((t, i) => (
           <button
             key={t}
             onClick={() => setTag(tag === t ? null : t)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors ${
+            className={`shrink-0 rounded-full px-3 py-2 text-[13px] transition-colors sm:py-1.5 ${
               tag === t ? "bg-surface-2 text-text" : "text-dim hover:text-text"
             } ${i >= TAGS_SHOWN && !allTags && tag !== t ? "sm:hidden" : ""}`}
           >
