@@ -112,24 +112,28 @@ function Deck({ id, today }: { id: string; today: string }) {
       </header>
 
       <section className="tile p-[22px]" aria-label="Прогресс колоды">
-        <dl className="grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:divide-x sm:divide-line">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-mute">
+            <span className="num text-2xl text-text">{states.learned}</span> из {cards.length} выучено
+          </p>
+          <span className="num text-sm text-mute">{cards.length ? Math.round((states.learned / cards.length) * 100) : 0}%</span>
+        </div>
+        <StateBar learned={states.learned} learning={states.learning} total={cards.length} className="mt-3 bg-surface-2" />
+        <dl className="mt-5 grid grid-cols-3 gap-3">
           {[
-            { label: "Всего", value: cards.length },
-            { label: "Новые", value: states.new },
-            { label: "Учу", value: states.learning },
-            { label: "Выучено", value: states.learned },
-          ].map((s, i) => (
-            <div key={s.label} className={i ? "sm:pl-5" : ""}>
-              <dt className="text-[13px] text-dim">{s.label}</dt>
-              <dd className="num mt-1 text-2xl">{s.value}</dd>
+            { label: "новые", value: states.new, mark: "bg-surface-2 ring-1 ring-line-strong" },
+            { label: "учу", value: states.learning, mark: "bg-chart-rest" },
+            { label: "выучено", value: states.learned, mark: "bg-accent" },
+          ].map((s) => (
+            <div key={s.label} className="flex flex-col-reverse">
+              <dt className="mt-1.5 flex items-center gap-1.5 text-[13px] leading-tight text-dim">
+                <i className={`h-1.5 w-3 shrink-0 rounded-full ${s.mark}`} />
+                {s.label}
+              </dt>
+              <dd className="num text-xl leading-none">{s.value}</dd>
             </div>
           ))}
         </dl>
-        <StateBar learned={states.learned} learning={states.learning} total={cards.length} className="mt-5 bg-surface-2" />
-        <p className="mt-2 text-[13px] text-dim">
-          <span className="text-mute">Выучено</span> — интервал от трёх недель · <span className="text-mute">Учу</span> — уже
-          встречалась, но интервал короче
-        </p>
       </section>
 
       <div className="flex items-center gap-2">
