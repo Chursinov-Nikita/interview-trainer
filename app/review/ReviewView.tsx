@@ -66,7 +66,6 @@ function KnowMeter({ level }: { level: 0 | 1 | 2 }) {
 }
 
 const isGrade = (anim: Anim): anim is Grade => GRADES.includes(anim as Grade);
-const SWIPE = 110;
 
 type SessionProps = { deckId: string | null; wantCram: boolean; onMore: () => void };
 
@@ -89,8 +88,6 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
   const [spent, setSpent] = useState(0);
   const [float, setFloat] = useState<{ grade: Grade; text: string; key: number } | null>(null);
   const [editing, setEditing] = useState(false);
-  const [drag, setDrag] = useState(0);
-  const dragRef = useRef<{ x: number; y: number; active: boolean } | null>(null);
   const cardStart = useRef(0);
   const pending = useRef<{ ms: number; scheduleIt: boolean } | null>(null);
   const [shake, setShake] = useState(0);
@@ -149,7 +146,6 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
     });
     if (g !== "again") setDone((d) => d + 1);
     setFace("front");
-    setDrag(0);
     setStep((s) => s + 1);
     setAnim("enter");
   };
@@ -187,41 +183,10 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
     return () => window.removeEventListener("keydown", listener);
   }, []);
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (face !== "back" || anim || e.pointerType === "mouse") return;
-    if (e.target instanceof Element && e.target.closest("pre, table")) return;
-    dragRef.current = { x: e.clientX, y: e.clientY, active: false };
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    if (!d) return;
-    const dx = e.clientX - d.x;
-    const dy = e.clientY - d.y;
-    if (!d.active) {
-      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-        d.active = true;
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } else if (Math.abs(dy) > 10) dragRef.current = null;
-      return;
-    }
-    setDrag(dx);
-  };
-  const onPointerUp = () => {
-    const d = dragRef.current;
-    dragRef.current = null;
-    if (!d?.active) return;
-    if (drag > SWIPE) grade("easy");
-    else if (drag < -SWIPE) grade("again");
-    else setDrag(0);
-  };
-
   if (total === 0) return <Empty cram={wantCram} deckId={deckId} exitHref={exitHref} />;
   if (finished)
     return <Finish total={total} first={first} spent={spent} cram={cram} deckId={deckId} onMore={onMore} />;
   if (!card) return null;
-
-  const dragging = drag !== 0 && !anim;
-  const tilt = Math.min(1, Math.abs(drag) / SWIPE);
 
   return (
     <div
@@ -278,17 +243,9 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
             data-anim={anim ?? undefined}
             onAnimationEnd={onAnimationEnd}
             onClick={face === "front" ? flip : undefined}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            className={`flashcard relative flex min-h-0 flex-1 touch-pan-y flex-col overflow-hidden rounded-[20px] bg-surface ${
+            className={`flashcard relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] bg-surface ${
               face === "front" ? "cursor-pointer" : ""
             }`}
-            style={{
-              transform: drag ? `translateX(${drag}px) rotate(${drag / 18}deg)` : undefined,
-              transition: dragging ? "none" : "transform 0.35s var(--ease-spring)",
-            }}
           >
             <div className="flex shrink-0 items-center gap-2.5 px-5 pt-4">
               {deck && <DeckIcon icon={deck.icon} color={deck.color} size="sm" />}
@@ -304,7 +261,6 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
                   e.stopPropagation();
                   setEditing(true);
                 }}
-                onPointerDown={(e) => e.stopPropagation()}
                 className="ml-auto grid size-9 shrink-0 place-items-center rounded-full text-dim hover:bg-surface-2"
                 aria-label="Редактировать карточку"
               >
@@ -337,16 +293,6 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
             {face === "front" && (
               <p className="shrink-0 pb-4 text-center text-[13px] text-dim">Нажми, чтобы перевернуть</p>
             )}
-            {drag !== 0 && (
-              <div
-                className={`pointer-events-none absolute top-6 rounded-xl border-2 px-3 py-1 text-base font-semibold ${
-                  drag > 0 ? "left-6 -rotate-12 border-easy text-easy" : "right-6 rotate-12 border-again text-again"
-                }`}
-                style={{ opacity: tilt }}
-              >
-                {drag > 0 ? "ЗНАЮ" : "НЕ ЗНАЮ"}
-              </div>
-            )}
           </article>
         </div>
       </div>
@@ -368,9 +314,6 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
                   onClick={() => grade(g)}
                   data-pressed={pressed}
                   className="grade"
-                  style={{
-                    transform: drag && ((g === "easy" && drag > 0) || (g === "again" && drag < 0)) ? `scale(${1 + tilt * 0.06})` : undefined,
-                  }}
                 >
                   <span className="flex items-center gap-2 text-base font-semibold">
                     <KnowMeter level={ui.level} />
