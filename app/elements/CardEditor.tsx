@@ -72,7 +72,7 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
           ref={question}
           value={front}
           onChange={(e) => setFront(e.target.value)}
-          placeholder="Чем type отличается от interface?"
+          placeholder="Напиши вопрос"
           className="input min-h-20 resize-y field-sizing-content"
         />
       </label>
@@ -81,14 +81,14 @@ function Form({ cardId, deckId, onDone }: { cardId?: string | null; deckId?: str
         <textarea
           value={back}
           onChange={(e) => setBack(e.target.value)}
-          placeholder={"Кратко и по делу.\n\n```ts\nconst x = 1;\n```"}
+          placeholder="Напиши ответ, можно с примером кода"
           className="input min-h-40 resize-y font-mono text-base field-sizing-content lg:text-sm"
         />
       </label>
 
       <label className="block space-y-1.5">
         <span className="eyebrow">Теги через запятую</span>
-        <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="generics, infer" className="input" />
+        <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Например: основы, важное" className="input" />
       </label>
 
       <div className="sticky bottom-0 -mx-5 flex gap-3 bg-surface-solid px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
