@@ -138,10 +138,11 @@ export function StateBar({
 
 export function ProgressRing({ learned, learning, total }: { learned: number; learning: number; total: number }) {
   const share = (n: number) => (n / (total || 1)) * 100;
-  const percent = Math.round(share(learned));
+  const started = learned + learning;
+  const percent = started ? Math.max(1, Math.round(share(started))) : 0;
   const arc = "fill-none stroke-[9]";
   return (
-    <div className="relative size-24 shrink-0" role="img" aria-label={`Выучено ${percent}%`}>
+    <div className="relative size-24 shrink-0" role="img" aria-label={`Начато ${percent}%`}>
       <svg viewBox="0 0 100 100" className="size-full -rotate-90">
         <circle cx="50" cy="50" r="44" className={`${arc} stroke-surface-2`} />
         {learning > 0 && (
