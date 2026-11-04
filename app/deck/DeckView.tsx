@@ -111,15 +111,18 @@ function Deck({ id, today }: { id: string; today: string }) {
         </div>
       </header>
 
-      <section className="tile flex items-center gap-6 p-[22px]" aria-label="Прогресс колоды">
+      <section className="tile flex items-center gap-6 p-[22px] lg:items-stretch" aria-label="Прогресс колоды">
         <ProgressRing learned={states.learned} learning={states.learning} total={cards.length} />
-        <dl className="min-w-0 flex-1 space-y-2.5 sm:grid sm:grid-cols-3 sm:gap-4 sm:space-y-0">
+        <dl className="min-w-0 flex-1 space-y-2.5 sm:grid sm:grid-cols-3 sm:gap-4 sm:space-y-0 lg:gap-2.5">
           {[
             { label: "новые", value: states.new, mark: "bg-surface-2 ring-1 ring-line-strong" },
             { label: "учу", value: states.learning, mark: "bg-chart-rest" },
             { label: "выучено", value: states.learned, mark: "bg-accent" },
           ].map((s) => (
-            <div key={s.label} className="flex items-center justify-between gap-3 sm:flex-col-reverse sm:items-start sm:justify-end sm:gap-1.5">
+            <div
+              key={s.label}
+              className="flex items-center justify-between gap-3 sm:flex-col-reverse sm:items-start sm:justify-end sm:gap-1.5 lg:items-center lg:justify-center lg:rounded-2xl lg:bg-surface-2 lg:px-3"
+            >
               <dt className="flex items-center gap-1.5 text-[13px] leading-tight text-dim">
                 <i className={`h-1.5 w-3 shrink-0 rounded-full ${s.mark}`} />
                 {s.label}
