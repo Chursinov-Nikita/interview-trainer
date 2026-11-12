@@ -14,8 +14,8 @@ export const nextInterval = (srs: Srs | undefined, grade: Grade): number => {
   const ease = srs?.ease ?? START_EASE;
   if (reps === 0) return grade === "easy" ? 3 : 1;
   if (reps === 1) return grade === "easy" ? 6 : 3;
-  if (grade === "hard") return Math.max(prev + 1, Math.round(prev * 1.2));
-  return Math.max(prev + 1, Math.round(prev * ease));
+  const hard = Math.max(prev + 1, Math.round(prev * 1.2));
+  return grade === "hard" ? hard : Math.max(hard + 1, Math.round(prev * ease));
 };
 
 export const schedule = (srs: Srs | undefined, grade: Grade, today: string): Srs => {

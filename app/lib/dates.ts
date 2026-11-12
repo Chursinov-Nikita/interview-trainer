@@ -34,18 +34,17 @@ export const plu = (n: number, forms: [string, string, string]) => `${n} ${plura
 
 const spell = (n: number, forms: [string, string, string]) => (n === 1 ? forms[0] : plu(n, forms));
 
+const halves = (n: number, forms: [string, string, string]) =>
+  Number.isInteger(n) ? spell(n, forms) : `${String(n).replace(".", ",")} ${forms[1]}`;
+
 export const inDays = (days: number) => {
   if (days < 1) return "сегодня";
   if (days === 1) return "завтра";
-  if (days < 7) return `через ${plu(days, ["день", "дня", "дней"])}`;
-  if (days < 30) return `через ${spell(Math.round(days / 7), ["неделю", "недели", "недель"])}`;
-  if (days < 365) return `через ${spell(Math.round(days / 30), ["месяц", "месяца", "месяцев"])}`;
-  const years = Math.round(days / 182.5) / 2;
-  return Number.isInteger(years)
-    ? `через ${spell(years, ["год", "года", "лет"])}`
-    : `через ${String(years).replace(".", ",")} года`;
+  if (days % 7 === 0 && days < 35) return `через ${spell(days / 7, ["неделю", "недели", "недель"])}`;
+  if (days < 30) return `через ${plu(days, ["день", "дня", "дней"])}`;
+  if (days < 365) return `через ${halves(Math.round(days / 15) / 2, ["месяц", "месяца", "месяцев"])}`;
+  return `через ${halves(Math.round(days / 182.5) / 2, ["год", "года", "лет"])}`;
 };
-
 export const longDate = (iso: string) =>
   parse(iso).toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
 

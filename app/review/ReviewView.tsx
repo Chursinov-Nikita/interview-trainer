@@ -67,6 +67,8 @@ function KnowMeter({ level }: { level: 0 | 1 | 2 }) {
 
 const isGrade = (anim: Anim): anim is Grade => GRADES.includes(anim as Grade);
 
+const REPEAT_GAP = 3;
+
 type SessionProps = { deckId: string | null; wantCram: boolean; onMore: () => void };
 
 function Session({ deckId, wantCram, onMore }: SessionProps) {
@@ -101,6 +103,12 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
   const total = initial.length;
   const finished = total > 0 && live.length === 0;
   const exitHref = deckId ? `/deck/?id=${encodeURIComponent(deckId)}` : "/";
+  const scheduleIt = !!current && !cram && !current.repeat;
+
+  const hint = (g: Grade) => {
+    if (g === "again") return live.length > 1 ? "сегодня" : "сразу";
+    return scheduleIt && card ? inDays(nextInterval(card.srs, g)) : "дальше";
+  };
 
   useEffect(() => {
     cardStart.current = performance.now();
@@ -119,8 +127,7 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
   const grade = (g: Grade) => {
     if (!current || !card || face !== "back" || isGrade(anim)) return;
     const ms = Math.min(60_000, performance.now() - cardStart.current);
-    const scheduleIt = !cram && !current.repeat;
-    const text = scheduleIt ? inDays(nextInterval(card.srs, g)) : g === "again" ? "ещё раз" : "+1";
+    const text = hint(g);
     pending.current = { ms, scheduleIt };
     sound[g]();
     if (g === "again") setShake(performance.now());
@@ -140,8 +147,8 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
     if (current && pending.current) review(current.id, g, pending.current.ms, pending.current.scheduleIt);
     pending.current = null;
     setQueue((q) => {
-      const rest = q.filter((item) => item !== current);
-      if (g === "again" && current) rest.splice(Math.min(rest.length, 3), 0, { id: current.id, repeat: true });
+      const rest = q.filter((item) => item !== current && cards[item.id]);
+      if (g === "again" && current) rest.splice(Math.min(rest.length, REPEAT_GAP), 0, { id: current.id, repeat: true });
       return rest;
     });
     if (g !== "again") setDone((d) => d + 1);
@@ -306,7 +313,6 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
           <div className="grid animate-rise grid-cols-3 gap-2 sm:gap-3">
             {GRADES.map((g) => {
               const ui = GRADE_UI[g];
-              const scheduleIt = !cram && !current.repeat;
               const pressed = isGrade(anim) && anim === g;
               return (
                 <button
@@ -319,9 +325,7 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
                     <KnowMeter level={ui.level} />
                     {ui.label}
                   </span>
-                  <span className="grade-hint">
-                    {scheduleIt ? inDays(nextInterval(card.srs, g)) : g === "again" ? "ещё раз" : "дальше"}
-                  </span>
+                  <span className="grade-hint">{hint(g)}</span>
                   <span className="kbd absolute top-2 right-2.5 hidden sm:inline">{ui.key}</span>
                 </button>
               );
