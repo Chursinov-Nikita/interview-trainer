@@ -357,7 +357,7 @@ label {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--mute);
 }
 .grade[data-pressed="true"] .grade-hint {

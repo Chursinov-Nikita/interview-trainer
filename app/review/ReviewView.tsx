@@ -57,7 +57,7 @@ const GRADE_UI: Record<Grade, { label: string; key: string; level: 0 | 1 | 2 }> 
 
 function KnowMeter({ level }: { level: 0 | 1 | 2 }) {
   return (
-    <svg viewBox="0 0 16 16" className="size-4 shrink-0 opacity-75" aria-hidden>
+    <svg viewBox="0 0 16 16" className="size-3.5 shrink-0 opacity-75" aria-hidden>
       <circle cx="8" cy="8" r="6.75" fill="none" stroke="currentColor" strokeWidth="1.5" />
       {level === 1 && <path d="M8 3.5a4.5 4.5 0 0 1 0 9z" fill="currentColor" />}
       {level === 2 && <circle cx="8" cy="8" r="4.5" fill="currentColor" />}
@@ -321,7 +321,7 @@ function Session({ deckId, wantCram, onMore }: SessionProps) {
                   data-pressed={pressed}
                   className="grade"
                 >
-                  <span className="flex items-center gap-2 text-base font-semibold">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold">
                     <KnowMeter level={ui.level} />
                     {ui.label}
                   </span>
